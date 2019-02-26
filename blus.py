@@ -188,6 +188,8 @@ class Device(Interface):
 
 class Adapter(Interface):
 
+    # FIXME: Expose methods from object interface as well
+
     def __init__(self, path):
         super().__init__(path, ADAPTER_IFACE)
 
@@ -308,15 +310,14 @@ def scan(manager, adapter_interface=None):
         exit("No adapter found")
 
     # for now, use first found adapter
-    path, interface = adapters[0]
-    adapter = interface_for(path, ADAPTER_IFACE)
-
-    name = adapter.get("Name")
-    mac = adapter.get("Address")
-    powered = adapter.get("Powered")
+    path, _ = adapters[0]
+    adapter = Adapter(path)
 
     _LOGGER.info(
-        "Adapter %s (%s) is powered %s", name, mac, ("off", "on")[powered]
+        "Adapter %s (%s) is powered %s",
+        adapter.name,
+        adapter.address,
+        ("off", "on")[adapter.powered]
     )
 
     def properties_changed(interface, changed, invalidated, path):
@@ -374,9 +375,9 @@ def scan(manager, adapter_interface=None):
     # discovery_filter = {"Transport": "le"}
     # discovery_filter = {"Transport": "auto"}
     try:
-        adapter.SetDiscoveryFilter(discovery_filter)
+        adapter.obj.SetDiscoveryFilter(discovery_filter)
         _LOGGER.info("starting discovery ...")
-        adapter.StartDiscovery()
+        adapter.obj.StartDiscovery()
         _LOGGER.info("... discovery started")
     except dbus.exceptions.DBusException as e:
         if e.get_dbus_name() == "org.bluez.Error.InProgress":
