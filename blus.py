@@ -91,6 +91,7 @@ class Interface:
 
 
 class Device(Interface):
+
     def __init__(self, path):
         super().__init__(path, DEVICE_IFACE)
 
@@ -138,15 +139,10 @@ class Device(Interface):
 
     @property
     def is_services_resolved(self):
-        return self.Get("ServicesResolved") == 1
+        return self.get("ServicesResolved") == 1
 
-    # fixme: make into properties with setters?
     def remove(self):
-        if not self.is_paired and not self.is_connected:
-            _LOGGER.info("Not paired with %s, skipping remove", self.path)
-            return
-        _LOGGER.info("Unpairing with %s", self.path)
-        self.manager.remove(self.path)
+        raise NotImplementedError("Use adapter.Remove for now")
 
     def pair(self):
         if self.is_paired:
@@ -166,7 +162,7 @@ class Device(Interface):
             _LOGGER.info("Disconnecting from %s", self.path)
             self.obj.Disconnect()
         except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to disconnect from %s", path)
+            _LOGGER.error("Failed to disconnect from %s", self.path)
 
     def connect(self, uuid=None):
 
