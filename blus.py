@@ -35,7 +35,7 @@ dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
 def bluez_version():
     out = subprocess.check_output("bluetoothctl -v", shell=True)
-    return tuple(map(int, out.split()[1].split(b".")))
+    return tuple(map(int, out.split()[-1].split(b".")))
 
 
 def quality_from_dbm(dbm):
