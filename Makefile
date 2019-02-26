@@ -32,10 +32,6 @@ clean:
 	rm -f pip-selfcheck.json
 	rm -rf pytype_output
 
-.PHONY: pypireg
-pypireg:
-	python setup.py register -r pypi
-
 .PHONY: pypi
 pypi:
 	rm -f dist/*.tar.gz
