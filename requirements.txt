@@ -1,0 +1,4 @@
+setuptools
+docopt
+dbus-python
+PyGObject
