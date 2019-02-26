@@ -77,8 +77,8 @@ def interface_for(path, interface):
 
     return obj
 
-class Interface:
 
+class Interface:
     def __init__(self, path, interface):
         self.path = path
         self.obj = interface_for(path, interface)
@@ -91,7 +91,6 @@ class Interface:
 
 
 class Device(Interface):
-
     def __init__(self, path):
         super().__init__(path, DEVICE_IFACE)
 
@@ -317,7 +316,7 @@ def scan(manager, adapter_interface=None):
         "Adapter %s (%s) is powered %s",
         adapter.name,
         adapter.address,
-        ("off", "on")[adapter.powered]
+        ("off", "on")[adapter.powered],
     )
 
     def properties_changed(interface, changed, invalidated, path):
@@ -330,7 +329,9 @@ def scan(manager, adapter_interface=None):
 
     def interfaces_added(path, interfaces):
         if DEVICE_IFACE not in interfaces:
-            _LOGGER.error("Unknown interface added on path %s: %s", path, interfaces)
+            _LOGGER.error(
+                "Unknown interface added on path %s: %s", path, interfaces
+            )
             return
         device = interfaces[DEVICE_IFACE]
         manager.added(path, device)
