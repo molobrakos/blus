@@ -234,6 +234,23 @@ class Adapter(Interface):
     def discovering(self):
         return self.get("Discovering")
 
+    def start_discovery(self):
+        # https://github.com/RadiusNetworks/bluez/blob/master/doc/adapter-api.txt
+        discovery_filter = {}
+        # discovery_filter = {"Transport": "bredr"}
+        # discovery_filter = {"Transport": "le"}
+        # discovery_filter = {"Transport": "auto"}
+        try:
+            self.obj.SetDiscoveryFilter(discovery_filter)
+            _LOGGER.info("starting discovery ...")
+            self.obj.StartDiscovery()
+            _LOGGER.info("... discovery started")
+        except dbus.exceptions.DBusException as e:
+            if e.get_dbus_name() == "org.bluez.Error.InProgress":
+                _LOGGER.debug("Discovery already in progress")
+            else:
+                _LOGGER.error("Could not start discovery: %s", e)
+
 
 class DeviceObserver:
     # Subclass this to catch events
@@ -366,22 +383,7 @@ def scan(manager, adapter_interface=None):
         interfaces_added(path, interfaces)
     _LOGGER.debug("... known interfaces added")
 
-    # https://github.com/RadiusNetworks/bluez/blob/master/doc/adapter-api.txt
-    discovery_filter = {}
-    # discovery_filter = {"Transport": "bredr"}
-    # discovery_filter = {"Transport": "le"}
-    # discovery_filter = {"Transport": "auto"}
-    try:
-        adapter.obj.SetDiscoveryFilter(discovery_filter)
-        _LOGGER.info("starting discovery ...")
-        adapter.obj.StartDiscovery()
-        _LOGGER.info("... discovery started")
-    except dbus.exceptions.DBusException as e:
-        if e.get_dbus_name() == "org.bluez.Error.InProgress":
-            _LOGGER.debug("Discovery already in progress")
-        else:
-            _LOGGER.error("Could not start discovery: %s", e)
-            return
+    adapter.start_discovery()
 
     try:
         main_loop = GObject.MainLoop()
