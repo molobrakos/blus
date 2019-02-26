@@ -1,1 +1,1 @@
-Simple Python interface to Bluez
+Simple Bluez D-Bus python client interface
