@@ -91,7 +91,6 @@ class Interface:
 
 
 class Device(Interface):
-
     def __init__(self, path):
         super().__init__(path, DEVICE_IFACE)
 
@@ -152,7 +151,7 @@ class Device(Interface):
             _LOGGER.info("Pairing with %s", self.path)
             self.obj.Pair()
         except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to pair with %s", self.path)
+            _LOGGER.error("Failed to pair with %s: %s", self.path, e)
 
     def disconnect(self):
         if not self.is_connected:
@@ -162,7 +161,7 @@ class Device(Interface):
             _LOGGER.info("Disconnecting from %s", self.path)
             self.obj.Disconnect()
         except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to disconnect from %s", self.path)
+            _LOGGER.error("Failed to disconnect from %s: %s", self.path, e)
 
     def connect(self, uuid=None):
 
@@ -178,7 +177,7 @@ class Device(Interface):
                 # FIXME: This blocks
                 self.obj.Connect()
         except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to connect to %s", self.path)
+            _LOGGER.error("Failed to connect to %s: %s", self.path, e)
 
 
 class Adapter(Interface):
@@ -228,7 +227,7 @@ class Adapter(Interface):
         try:
             self.obj.RemoveDevice(path)
         except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to unpair with %s", path)
+            _LOGGER.error("Failed to unpair with %s: %s", path, e)
 
     @property
     def discovering(self):
