@@ -16,7 +16,7 @@ from dbus import PROPERTIES_IFACE
 
 # FIXME: consider pydbus? https://github.com/LEW21/pydbus
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER_SCAN = logging.getLogger(__name__ + ".scan")
