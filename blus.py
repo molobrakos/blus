@@ -405,4 +405,4 @@ if __name__ == "__main__":
         def seen(self, path, device):
             print("Seeing", path)
 
-    scan(Observer())
+    scan(DeviceManager(Observer()))
