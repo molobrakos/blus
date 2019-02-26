@@ -11,5 +11,6 @@ setup(
     author="Erik",
     author_email="error.errorsson@gmail.com",
     packages=[],
+    py_modules=["blus"],
     install_requires=list(open("requirements.txt").read().strip().split("\n"))
 )
