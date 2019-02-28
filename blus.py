@@ -32,7 +32,6 @@ OBJECT_MANAGER_IFACE = "org.freedesktop.DBus.ObjectManager"
 
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-
 def bluez_version():
     out = subprocess.check_output("bluetoothctl -v", shell=True)
     return tuple(map(int, out.split()[-1].split(b".")))
@@ -312,6 +311,7 @@ def scan(manager, adapter_interface=None):
     if threading.current_thread() != threading.main_thread():
         threading.current_thread().name = "bt-scanner"
 
+    _LOGGER.info("%s %s %s", __name__, __version__, __file__)
     _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
     adapters = all_objects(ADAPTER_IFACE)
