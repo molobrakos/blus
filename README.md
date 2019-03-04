@@ -12,6 +12,7 @@ Simple Bluez D-Bus python client interface
 * gatt-python (https://github.com/getsenic/gatt-python)
 * bleep (https://github.com/matthewelse/bleep)
 * gattlib (https://github.com/labapart/gattlib)
+* python-bluezero (https://github.com/ukBaz/python-bluezero)
 
 ## To do
 Implement BLE GATT services and characteristics
