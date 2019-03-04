@@ -284,6 +284,9 @@ class DeviceManager:
             for key in invalidated:
                 del self.devices[path][key]
         if changed:
+            _LOGGER.debug("%s properties changed:", path)
+            for k, v in changed.items():
+                _LOGGER.debug("> %s = %s", k, v)
             self.devices[path].update(changed)
 
         device = self.devices[path]
@@ -344,6 +347,7 @@ def scan(manager, adapter_interface=None):
             _LOGGER.error(
                 "Unknown interface added on path %s: %s", path, interfaces
             )
+            # e.g. /org/bluez/hci0/dev_11_22_33_44_55_66/fd1 (MediaTransport1)
             return
         device = interfaces[DEVICE_IFACE]
         manager.added(path, device)
@@ -377,24 +381,31 @@ def scan(manager, adapter_interface=None):
     _LOGGER.debug("Total known objects: %d", len(all_objects()))
     _LOGGER.debug("Total known devices: %d", len(all_objects(DEVICE_IFACE)))
 
-    _LOGGER.debug("adding known interfaces ...")
-    for path, interfaces in all_objects(DEVICE_IFACE):
-        interfaces_added(path, interfaces)
-    _LOGGER.debug("... known interfaces added")
+    def start_discovery():
+        _LOGGER.debug("adding known interfaces ...")
+        for path, interfaces in all_objects(DEVICE_IFACE):
+            interfaces_added(path, interfaces)
+        _LOGGER.debug("... known interfaces added")
+        _LOGGER.info("discovering...")
+        adapter.start_discovery()
+        _LOGGER.info("done")
+        return False
 
-    adapter.start_discovery()
+    GObject.idle_add(start_discovery)
 
+    main_loop = GObject.MainLoop()
     try:
-        main_loop = GObject.MainLoop()
         _LOGGER.info("Running main loop")
         main_loop.run()
     except KeyboardInterrupt:
-        _LOGGER.info("Exiting")
+        _LOGGER.info("Keyboard interrupt, exiting")
         raise
     except Exception:
+        _LOGGER.exception("Got exception")
         raise
     finally:
         # FIXME: disconnect signals etc
+        main_loop.quit()
         pass
 
 
