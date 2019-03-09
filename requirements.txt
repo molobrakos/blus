@@ -1,4 +1,4 @@
 setuptools
 docopt
-dbus-python
+pydbus
 PyGObject

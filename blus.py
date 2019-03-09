@@ -4,33 +4,29 @@ import logging
 import subprocess
 import threading
 
-try:
-    import dbus
-except ImportError:
-    exit("No dbus found. " "Run: sudo apt-get install python3-dbus")
+import pydbus
+from pydbus import SystemBus, SessionBus
+from gi.repository import GLib
 
-import dbus.mainloop.glib
-import dbus.service
-from gi.repository import GObject
-from dbus import PROPERTIES_IFACE
-
-# FIXME: consider pydbus? https://github.com/LEW21/pydbus
 
 __version__ = "0.0.5"
+
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER_SCAN = logging.getLogger(__name__ + ".scan")
 
+
 LOGFMT = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
 DATEFMT = "%y-%m-%d %H:%M.%S"
 
-SERVICE = "org.bluez"
+ROOT_PATH = "/"
+BUS_NAME = "org.bluez"
 ADAPTER_IFACE = "org.bluez.Adapter1"
 DEVICE_IFACE = "org.bluez.Device1"
 PROFILE_MANAGER_IFACE = "org.bluez.ProfileManager1"
 OBJECT_MANAGER_IFACE = "org.freedesktop.DBus.ObjectManager"
+PROPERTIES_IFACE = "org.freedesktop.DBus.Properties"
 
-dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
 def bluez_version():
     out = subprocess.check_output("bluetoothctl -v", shell=True)
@@ -48,210 +44,35 @@ def quality_from_dbm(dbm):
         return 2 * (dbm + 100)
 
 
+def proxy_for(path=None):
+    bus = pydbus.SystemBus()
+    proxy = bus.get(BUS_NAME, path)
+    return proxy
+
+
+def profile_manager():
+    return proxy_for()
+
+
+def agent_manager():
+    return proxy_for()
+
+
+def object_manager():
+    return proxy_for(ROOT_PATH)
+
+
 def all_objects(interface=None):
-    object_manager = interface_for("/", OBJECT_MANAGER_IFACE)
     return [
         (path, interfaces)
-        for path, interfaces in object_manager.GetManagedObjects().items()
+        for path, interfaces in object_manager().GetManagedObjects().items()
         if interface in interfaces or interface is None
     ]
 
 
-def interface_for(path, interface):
-
-    bus = dbus.SystemBus()
-    obj = bus.get_object(SERVICE, path)
-    obj = dbus.Interface(obj, interface)
-
-    properties = dbus.Interface(obj, PROPERTIES_IFACE)
-
-    def get(prop):
-        return properties.Get(interface, prop)
-
-    def set(prop, val):
-        properties.Set(interface, prop, val)
-
-    obj.get = get
-    obj.set = set
-
-    return obj
-
-
-class Interface:
-    def __init__(self, path, interface):
-        self.path = path
-        self.obj = interface_for(path, interface)
-
-    def get(self, prop):
-        return self.obj.get(prop)
-
-    def set(self, prop, val):
-        self.obj.set(prop, val)
-
-
-class Device(Interface):
-    def __init__(self, path):
-        super().__init__(path, DEVICE_IFACE)
-
-    def get(self, prop):
-        return self.obj.get(prop)
-
-    def set(self, prop, val):
-        self.obj.set(prop, val)
-
-    @property
-    def name(self):
-        return self.get("Name")
-
-    @property
-    def alias(self):
-        return self.get("Alias")
-
-    @property
-    def address(self):
-        return self.get("Address")
-
-    @property
-    def uuids(self):
-        return self.get("UUIDs")
-
-    @property
-    def address_type(self):
-        return self.get("AddressType")
-
-    @property
-    def is_trusted(self):
-        return self.get("Trusted") == 1
-
-    @is_trusted.setter
-    def is_trusted(self, val):
-        return self.set("Trusted", val)
-
-    @property
-    def is_paired(self):
-        return self.get("Paired") == 1
-
-    @property
-    def is_connected(self):
-        return self.get("Connected") == 1
-
-    @property
-    def is_services_resolved(self):
-        return self.get("ServicesResolved") == 1
-
-    def remove(self):
-        raise NotImplementedError("Use adapter.Remove for now")
-
-    def pair(self):
-        if self.is_paired:
-            _LOGGER.info("Already paired to %s", self.path)
-            return
-        try:
-            _LOGGER.info("Pairing with %s", self.path)
-            self.obj.Pair()
-        except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to pair with %s: %s", self.path, e)
-
-    def disconnect(self):
-        if not self.is_connected:
-            _LOGGER.info("Not connected to %s, skipping disconnect", self.path)
-            return
-        try:
-            _LOGGER.info("Disconnecting from %s", self.path)
-            self.obj.Disconnect()
-        except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to disconnect from %s: %s", self.path, e)
-
-    def connect(self, uuid=None):
-
-        if self.is_connected:
-            _LOGGER.info("Already connected to %s", self.path)
-            return
-        try:
-            if uuid:
-                _LOGGER.info("Connecting to profile %s", uuid)
-                self.obj.ConnectProfile(uuid)
-            else:
-                _LOGGER.info("Connecting to %s", self.path)
-                # FIXME: This blocks
-                self.obj.Connect()
-        except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to connect to %s: %s", self.path, e)
-
-
-class Adapter(Interface):
-
-    # FIXME: Expose methods from object interface as well
-
-    def __init__(self, path):
-        super().__init__(path, ADAPTER_IFACE)
-
-    @property
-    def name(self):
-        return self.get("Name")
-
-    @property
-    def alias(self):
-        return self.get("Alias")
-
-    @property
-    def address(self):
-        return self.get("Address")
-
-    @property
-    def pairable(self):
-        return self.get("Pairable")
-
-    @pairable.setter
-    def pairable(self, state):
-        self.set("Pairable", dbus.Boolean(state))
-
-    @property
-    def powered(self):
-        return self.get("Powered")
-
-    @powered.setter
-    def powered(self, state):
-        self.set("Powered", dbus.Boolean(state))
-
-    @property
-    def discoverable(self):
-        return self.get("Discoverable")
-
-    @discoverable.setter
-    def discoverable(self, state):
-        self.set("Discoverable", dbus.Boolean(state))
-
-    def remove(self, path):
-        try:
-            self.obj.RemoveDevice(path)
-        except dbus.exceptions.DBusException as e:
-            _LOGGER.error("Failed to unpair with %s: %s", path, e)
-
-    @property
-    def discovering(self):
-        return self.get("Discovering")
-
-    def start_discovery(self):
-        # https://github.com/RadiusNetworks/bluez/blob/master/doc/adapter-api.txt
-        discovery_filter = {}
-        # discovery_filter = {"Transport": "bredr"}
-        # discovery_filter = {"Transport": "le"}
-        # discovery_filter = {"Transport": "auto"}
-        try:
-            self.obj.SetDiscoveryFilter(discovery_filter)
-            _LOGGER.info("starting discovery ...")
-            self.obj.StartDiscovery()
-            _LOGGER.info("... discovery started")
-        except dbus.exceptions.DBusException as e:
-            if e.get_dbus_name() == "org.bluez.Error.InProgress":
-                _LOGGER.debug("Discovery already in progress")
-            else:
-                _LOGGER.error("Could not start discovery: %s", e)
-
-
 class DeviceObserver:
-    # Subclass this to catch events
+
+    # Subclass this to catch any events
 
     def discovered(self, path, device):
         # Override this to catch events
@@ -263,6 +84,11 @@ class DeviceObserver:
 
 
 class DeviceManager:
+
+    # This device manager keeps a dict of all known/seen
+    # devices and notifies one connected observer.
+    # Subclass this for any other behaviour
+
     def __init__(self, observer):
         self.devices = {}
         self.observer = observer
@@ -294,7 +120,7 @@ class DeviceManager:
         mac = device.get("Address")
         q = quality_from_dbm(device.get("RSSI"))
         if q is not None:
-            _LOGGER_SCAN.debug("Seeing %32s (%s) (%3s%%)", alias, mac, q)
+            _LOGGER_SCAN.debug("Seeing %s (%3s%%): %s", mac, q, alias)
 
         self.observer.seen(path, self.devices[path])
 
@@ -306,41 +132,40 @@ class DeviceManager:
 
 
 def scan(manager, adapter_interface=None):
-
     # For asyncio this can be run in it's own thread
     # But the callback in DeviceObserver needs to be
     # bridged with loop.call_soon_threadsafe then
-
-    if threading.current_thread() != threading.main_thread():
-        threading.current_thread().name = "bt-scanner"
 
     _LOGGER.info("%s %s %s", __name__, __version__, __file__)
     _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
     adapters = all_objects(ADAPTER_IFACE)
+    _LOGGER.debug("Total known objects: %d", len(all_objects()))
     _LOGGER.debug("Known adapters: %d", len(all_objects(ADAPTER_IFACE)))
+    _LOGGER.debug("Total known devices: %d", len(all_objects(DEVICE_IFACE)))
 
     if not adapters:
         exit("No adapter found")
 
     # for now, use first found adapter
     path, _ = adapters[0]
-    adapter = Adapter(path)
+
+    adapter = proxy_for(path)
 
     _LOGGER.info(
-        "Adapter %s (%s) is powered %s",
-        adapter.name,
-        adapter.address,
-        ("off", "on")[adapter.powered],
+        "Adapter %s (%s) on %s is powered %s",
+        adapter.Name,
+        adapter.Address,
+        path,
+        ("off", "on")[adapter.Powered],
     )
 
-    def properties_changed(interface, changed, invalidated, path):
-        if interface != DEVICE_IFACE:
-            _LOGGER.error(
-                "unknown interface changed on %s: %s", path, interface
-            )
+    def properties_changed(_sender, path, _iface, _signal, interfaces):
+        if interfaces[0] != DEVICE_IFACE:
+            _LOGGER.error("unknown %s %s", path, interfaces)
             return
-        manager.changed(path, changed, invalidated)
+        changed = interfaces[1]
+        manager.changed(path, changed, None)
 
     def interfaces_added(path, interfaces):
         if DEVICE_IFACE not in interfaces:
@@ -350,44 +175,38 @@ def scan(manager, adapter_interface=None):
             # e.g. /org/bluez/hci0/dev_11_22_33_44_55_66/fd1 (MediaTransport1)
             return
         device = interfaces[DEVICE_IFACE]
+        # device = proxy_for(path)
+        _LOGGER.debug(
+            "Added %s: %s", path, device["Alias"]
+        )  # , quality_from_dbm(device.RSSI))
         manager.added(path, device)
 
     def interfaces_removed(path, interfaces):
         manager.removed(path)
 
-    def add_callback(
-        callback, signal_name, dbus_interface=OBJECT_MANAGER_IFACE, **kwargs
-    ):
-        bus = dbus.SystemBus()
-        return bus.add_signal_receiver(
-            callback,
-            bus_name=SERVICE,
-            dbus_interface=dbus_interface,
-            signal_name=signal_name,
-            **kwargs
-        )
-
-    add_callback(interfaces_added, "InterfacesAdded")
-    add_callback(interfaces_removed, "InterfacesRemoved")
-    add_callback(properties_changed, "PropertiesChanged", path_keyword="path")
-    add_callback(
-        properties_changed,
-        "PropertiesChanged",
-        dbus_interface=dbus.PROPERTIES_IFACE,
+    with object_manager().InterfacesAdded.connect(
+        interfaces_added
+    ), object_manager().InterfacesRemoved.connect(
+        interfaces_removed
+    ), pydbus.SystemBus().subscribe(
+        iface=PROPERTIES_IFACE,
+        signal="PropertiesChanged",
         arg0=DEVICE_IFACE,
-        path_keyword="path",
-    )
-
-    _LOGGER.debug("Total known objects: %d", len(all_objects()))
-    _LOGGER.debug("Total known devices: %d", len(all_objects(DEVICE_IFACE)))
-
+        signal_fired=properties_changed,
+    ):
+           
     def start_discovery():
         _LOGGER.debug("adding known interfaces ...")
         for path, interfaces in all_objects(DEVICE_IFACE):
             interfaces_added(path, interfaces)
         _LOGGER.debug("... known interfaces added")
         _LOGGER.info("discovering...")
-        adapter.start_discovery()
+        discovery_filter = {}
+        # discovery_filter = {"Transport": "bredr"}
+        # discovery_filter = {"Transport": "le"}
+        # discovery_filter = {"Transport": "auto"}
+        adapter.SetDiscoveryFilter(discovery_filter)
+        adapter.StartDiscovery()
         _LOGGER.info("done")
         return False
 
@@ -413,6 +232,9 @@ if __name__ == "__main__":
 
     class Observer(DeviceObserver):
         def seen(self, path, device):
+            print("Discovered", path)
+
+        def discovered(self, path, device):
             print("Seeing", path)
 
     scan(DeviceManager(Observer()))

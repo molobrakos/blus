@@ -16,3 +16,7 @@ Simple Bluez D-Bus python client interface
 
 ## To do
 Implement BLE GATT services and characteristics
+
+## Prerequisites
+
+sudo apt install libgirepository1.0-dev libcairo2-dev
