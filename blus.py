@@ -6,7 +6,7 @@ import threading
 
 import pydbus
 from pydbus import SystemBus, SessionBus
-from gi.repository import GLib
+from gi.repository import GLib, GObject
 
 
 __version__ = "0.0.5"
@@ -184,17 +184,6 @@ def scan(manager, adapter_interface=None):
     def interfaces_removed(path, interfaces):
         manager.removed(path)
 
-    with object_manager().InterfacesAdded.connect(
-        interfaces_added
-    ), object_manager().InterfacesRemoved.connect(
-        interfaces_removed
-    ), pydbus.SystemBus().subscribe(
-        iface=PROPERTIES_IFACE,
-        signal="PropertiesChanged",
-        arg0=DEVICE_IFACE,
-        signal_fired=properties_changed,
-    ):
-           
     def start_discovery():
         _LOGGER.debug("adding known interfaces ...")
         for path, interfaces in all_objects(DEVICE_IFACE):
@@ -210,22 +199,35 @@ def scan(manager, adapter_interface=None):
         _LOGGER.info("done")
         return False
 
+    def run():
+        main_loop = GObject.MainLoop()
+        try:
+            _LOGGER.info("Running main loop")
+            main_loop.run()
+        except KeyboardInterrupt:
+            _LOGGER.info("Keyboard interrupt, exiting")
+            raise
+        except Exception:
+            _LOGGER.exception("Got exception")
+            raise
+        finally:
+            # FIXME: disconnect signals etc
+            main_loop.quit()
+            pass
+
     GObject.idle_add(start_discovery)
 
-    main_loop = GObject.MainLoop()
-    try:
-        _LOGGER.info("Running main loop")
-        main_loop.run()
-    except KeyboardInterrupt:
-        _LOGGER.info("Keyboard interrupt, exiting")
-        raise
-    except Exception:
-        _LOGGER.exception("Got exception")
-        raise
-    finally:
-        # FIXME: disconnect signals etc
-        main_loop.quit()
-        pass
+    with object_manager().InterfacesAdded.connect(
+        interfaces_added
+    ), object_manager().InterfacesRemoved.connect(
+        interfaces_removed
+    ), pydbus.SystemBus().subscribe(
+        iface=PROPERTIES_IFACE,
+        signal="PropertiesChanged",
+        arg0=DEVICE_IFACE,
+        signal_fired=properties_changed,
+    ):
+        run()
 
 
 if __name__ == "__main__":
