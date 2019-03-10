@@ -4,7 +4,6 @@ import logging
 import subprocess
 
 import pydbus
-from pydbus import SystemBus, SessionBus  # noqa
 from gi.repository import GObject
 
 
