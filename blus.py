@@ -7,7 +7,7 @@ import pydbus
 from gi.repository import GObject
 
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 
 _LOGGER = logging.getLogger(__name__)
