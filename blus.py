@@ -176,9 +176,7 @@ def scan(manager, adapter_interface=None):
             return
         device = interfaces[DEVICE_IFACE]
         # device = proxy_for(path)
-        _LOGGER.debug(
-            "Added %s: %s", path, device["Alias"]
-        )
+        _LOGGER.debug("Added %s: %s", path, device["Alias"])
         manager.added(path, device)
 
     def interfaces_removed(path, interfaces):
