@@ -110,8 +110,8 @@ class DeviceManager:
                 del self.devices[path][key]
         if changed:
             _LOGGER.debug("%s properties changed:", path)
-            for k, v in changed.items():
-                _LOGGER.debug("> %s = %s", k, v)
+            # for k, v in changed.items():
+            #    _LOGGER.debug("> %s = %s", k, v)
             self.devices[path].update(changed)
 
         device = self.devices[path]
@@ -178,7 +178,7 @@ def scan(manager, adapter_interface=None):
         # device = proxy_for(path)
         _LOGGER.debug(
             "Added %s: %s", path, device["Alias"]
-        )  # , quality_from_dbm(device.RSSI))
+        )
         manager.added(path, device)
 
     def interfaces_removed(path, interfaces):
