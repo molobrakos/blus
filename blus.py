@@ -108,8 +108,6 @@ class DeviceManager:
                 del self.devices[path][key]
         if changed:
             _LOGGER.debug("%s properties changed:", path)
-            # for k, v in changed.items():
-            #    _LOGGER.debug("> %s = %s", k, v)
             self.devices[path].update(changed)
 
         device = self.devices[path]
@@ -174,7 +172,6 @@ def scan(manager, adapter_interface=None):
             # e.g. /org/bluez/hci0/dev_11_22_33_44_55_66/fd1 (MediaTransport1)
             return
         device = interfaces[DEVICE_IFACE]
-        # device = proxy_for(path)
         _LOGGER.debug("Added %s: %s", path, device["Alias"])
         manager.added(path, device)
 
@@ -208,7 +205,6 @@ def scan(manager, adapter_interface=None):
             _LOGGER.exception("Got exception")
             raise
         finally:
-            # FIXME: disconnect signals etc
             main_loop.quit()
             pass
 
