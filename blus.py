@@ -135,6 +135,7 @@ def scan(manager, adapter_interface=None):
     # bridged with loop.call_soon_threadsafe then
 
     _LOGGER.info("%s %s %s", __name__, __version__, __file__)
+    _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
     _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
     adapters = all_objects(ADAPTER_IFACE)
