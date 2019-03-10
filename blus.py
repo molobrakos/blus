@@ -2,11 +2,10 @@
 
 import logging
 import subprocess
-import threading
 
 import pydbus
-from pydbus import SystemBus, SessionBus
-from gi.repository import GLib, GObject
+from pydbus import SystemBus, SessionBus  # noqa
+from gi.repository import GObject
 
 
 __version__ = "0.0.5"
