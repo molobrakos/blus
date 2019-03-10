@@ -8,7 +8,7 @@ from pydbus import SystemBus, SessionBus  # noqa
 from gi.repository import GObject
 
 
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 
 
 _LOGGER = logging.getLogger(__name__)
