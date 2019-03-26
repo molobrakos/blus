@@ -138,7 +138,7 @@ class DeviceManager:
         del self.devices[path]
 
 
-def scan(manager, adapter_interface=None):
+def scan(manager, transport=None, adapter_interface=None):
     # For asyncio this can be run in it's own thread
     # But the callback in DeviceObserver needs to be
     # bridged with loop.call_soon_threadsafe then
@@ -195,9 +195,12 @@ def scan(manager, adapter_interface=None):
             interfaces_added(path, interfaces)
         _LOGGER.debug("... known interfaces added")
         _LOGGER.info("discovering...")
-        discovery_filter = {}
-        # discovery_filter = {"Transport": "bredr"}
+        if transport:
+            discovery_filter = dict(Transport=pydbus.Variant("s", transport))
+        else:
+            discovery_filter = {}
         # discovery_filter = {"Transport": "le"}
+        # discovery_filter = {"Transport": "bredr"}
         # discovery_filter = {"Transport": "auto"}
         adapter.SetDiscoveryFilter(discovery_filter)
         adapter.StartDiscovery()
