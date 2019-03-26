@@ -7,11 +7,11 @@ class Observer(blus.DeviceObserver):
 
   def discovered(self, path, device):
     alias = device.get("Alias")
-    print("Discovered %s at %s" % alias, path))
+    print("Discovered %s at %s" % (alias, path))
 
   def seen(self, path, device):
     alias = device.get("Alias")
-    print("Seeing %s at %s" % alias, path))
+    print("Seeing %s at %s" % (alias, path))
 
   blus.scan(blus.DeviceManager(Observer()), transport="le")
   ```
