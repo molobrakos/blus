@@ -118,8 +118,8 @@ class DeviceManager:
             for key in invalidated:
                 del self.devices[path][key]
         if changed:
-            _LOGGER.debug("%s properties changed", path)
             self.devices[path].update(changed)
+            _LOGGER_SCAN.debug("%s properties changed", path)
 
         device = self.devices[path]
 
