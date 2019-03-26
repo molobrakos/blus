@@ -4,7 +4,7 @@ import logging
 import subprocess
 
 import pydbus
-from gi.repository import GObject
+from gi.repository import GLib
 
 
 __version__ = "0.0.9"
@@ -91,12 +91,21 @@ class DeviceManager:
         self.devices = {}
         self.observer = observer
 
+        def periodic_check():
+            try:
+                _LOGGER.debug("Periodic check, known devices: %d", len(self.devices))
+            finally:
+                GLib.timeout_add_seconds(10, periodic_check)
+
+        GLib.idle_add(periodic_check)
+
     def added(self, path, device):
         if path in self.devices:
             _LOGGER.error("Device already known: %s", path)
             return
         self.devices[path] = device
         self.observer.discovered(path, device)
+        _LOGGER.debug("Added %s. Total known %d", path, len(self.devices))
 
     def changed(self, path, changed, invalidated):
         if path not in self.devices:
@@ -107,7 +116,7 @@ class DeviceManager:
             for key in invalidated:
                 del self.devices[path][key]
         if changed:
-            _LOGGER.debug("%s properties changed:", path)
+            _LOGGER.debug("%s properties changed", path)
             self.devices[path].update(changed)
 
         device = self.devices[path]
@@ -194,7 +203,7 @@ def scan(manager, adapter_interface=None):
         return False
 
     def run():
-        main_loop = GObject.MainLoop()
+        main_loop = GLib.MainLoop()
         try:
             _LOGGER.info("Running main loop")
             main_loop.run()
@@ -208,7 +217,7 @@ def scan(manager, adapter_interface=None):
             main_loop.quit()
             pass
 
-    GObject.idle_add(start_discovery)
+    GLib.idle_add(start_discovery)
 
     with object_manager().InterfacesAdded.connect(
         interfaces_added
