@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="blus",
-    version="0.0.12",
+    version="0.0.13",
     description="Simple Bluez D-Bus client interface",
     url="https://github.com/molobrakos/blus",
     license="",
