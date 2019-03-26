@@ -13,8 +13,8 @@ class Observer(blus.DeviceObserver):
     alias = device.get("Alias")
     print("Seeing %s at %s" % (alias, path))
 
-  blus.scan(blus.DeviceManager(Observer()), transport="le")
-  ```
+blus.scan(blus.DeviceManager(Observer()), transport="le")
+```
   
   Other example:
   https://github.com/molobrakos/toothbrush/blob/master/toothbrush
