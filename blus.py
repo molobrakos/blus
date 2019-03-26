@@ -138,7 +138,7 @@ class DeviceManager:
         del self.devices[path]
 
 
-def scan(manager, transport=None, adapter_interface=None):
+def scan(manager, transport="le", adapter_interface=None):
     # For asyncio this can be run in it's own thread
     # But the callback in DeviceObserver needs to be
     # bridged with loop.call_soon_threadsafe then
