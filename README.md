@@ -12,6 +12,12 @@ class Observer(blus.DeviceObserver):
   def seen(self, path, device):
     alias = device.get("Alias")
     print("Seeing %s at %s" % (alias, path))
+    
+    # device = blus.proxy_for(device)
+    # device.trusted = True
+    # device.Pair()
+    # ...
+    
 
 blus.scan(blus.DeviceManager(Observer()), transport="le")
 ```
