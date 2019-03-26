@@ -7,7 +7,7 @@ import pydbus
 from gi.repository import GLib
 
 
-__version__ = "0.0.9"
+__version__ = "0.0.10"
 
 
 _LOGGER = logging.getLogger(__name__)
