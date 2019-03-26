@@ -93,7 +93,9 @@ class DeviceManager:
 
         def periodic_check():
             try:
-                _LOGGER.debug("Periodic check, known devices: %d", len(self.devices))
+                _LOGGER.debug(
+                    "Periodic check, known devices: %d", len(self.devices)
+                )
             finally:
                 GLib.timeout_add_seconds(10, periodic_check)
 
