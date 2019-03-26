@@ -16,7 +16,7 @@ class Observer(blus.DeviceObserver):
     # device = blus.proxy_for(device)
     # device.trusted = True
     # device.Pair()
-    # ...
+    # etc ...
     
 
 blus.scan(blus.DeviceManager(Observer()), transport="le")
