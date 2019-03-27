@@ -167,7 +167,7 @@ class DeviceManager:
 
         GLib.idle_add(periodic_check)
 
-    def interfaces_added(self, path, interfaces):
+    def _interfaces_added(self, path, interfaces):
         if path in self.objects:
             _LOGGER.error("Object already known: %s", path)
             return
@@ -180,7 +180,7 @@ class DeviceManager:
 
         _LOGGER.debug("Added %s. Total known %d", path, len(self.objects))
 
-    def properties_changed(self, _sender, path, _iface, _signal, changed):
+    def _properties_changed(self, _sender, path, _iface, _signal, changed):
         interface, changed, invalidated = changed
         if path not in self.objects:
             _LOGGER.error("unknown object %s changed", path)
@@ -204,12 +204,14 @@ class DeviceManager:
                 _LOGGER_SCAN.debug("Seeing %s (%3s%%): %s", mac, q, alias)
             self.observer.seen(path, device)
 
-    def interfaces_removed(self, path, interfaces):
+    def _interfaces_removed(self, path, interfaces):
         if path not in self.objects:
             _LOGGER.error("Removed unknown device: %s", path)
             return
+
         for interface in interfaces:
             del self.objects[path][interface]
+
         if not len(self.objects[path]):
             del self.objects[path]
 
@@ -251,7 +253,7 @@ class DeviceManager:
             _LOGGER.debug("adding known interfaces ...")
 
             for obj in get_objects():
-                self.interfaces_added(*obj)
+                self._interfaces_added(*obj)
 
             def _relevant_interfaces(interfaces):
                 irrelevant_interfaces = {
@@ -294,19 +296,19 @@ class DeviceManager:
         GLib.idle_add(start_discovery)
 
         with object_manager().InterfacesAdded.connect(
-                self.interfaces_added
+                self._interfaces_added
         ), object_manager().InterfacesRemoved.connect(
-            self.interfaces_removed
+            self._interfaces_removed
         ), pydbus.SystemBus().subscribe(
             iface=PROPERTIES_IFACE,
             signal="PropertiesChanged",
             arg0=DEVICE_IFACE,
-            signal_fired=self.properties_changed,
+            signal_fired=self._properties_changed,
         ), pydbus.SystemBus().subscribe(
             iface=PROPERTIES_IFACE,
             signal="PropertiesChanged",
             arg0=DESCRIPTOR_IFACE,
-            signal_fired=self.properties_changed,
+            signal_fired=self._properties_changed,
         ):
             run()
 
