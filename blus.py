@@ -49,8 +49,7 @@ def _len(g):
 
 def proxy_for(path=None):
     bus = pydbus.SystemBus()
-    proxy = bus.get(BUS_NAME, path)
-    return proxy
+    return bus.get(BUS_NAME, path)
 
 
 def profile_manager():
