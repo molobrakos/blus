@@ -261,8 +261,8 @@ def scan(manager, transport="le", device=None):
     def start_discovery():
         _LOGGER.debug("adding known interfaces ...")
 
-        for path, interfaces in get_objects():
-            interfaces_added(path, interfaces)
+        for obj in get_objects():
+            interfaces_added(*obj)
 
         _LOGGER.debug("... known interfaces added")
         _LOGGER.info("discovering...")
