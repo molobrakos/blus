@@ -73,11 +73,9 @@ def get_adapters():
     return all_objects(ADAPTER_IFACE)
 
 
-def get_adapter(interface=None):
-    return next(adapter
-                for adapter in get_adapters()
-                if not interface
-                or interface == adapter["interface"])
+def get_adapter():
+    """return first adapter"""
+    return get_adapters()[0]
 
 
 class DeviceObserver:
