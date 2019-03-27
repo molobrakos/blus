@@ -60,7 +60,7 @@ def object_manager():
     return proxy_for(ROOT_PATH)
 
 
-def all_objects(interface=None):
+def get_objects(interface=None):
     return (
         (path, interfaces)
         for path, interfaces in object_manager().GetManagedObjects().items()
@@ -70,7 +70,7 @@ def all_objects(interface=None):
 
 def get_adapters():
     """shorthand"""
-    return all_objects(ADAPTER_IFACE)
+    return get_objects(ADAPTER_IFACE)
 
 
 def get_adapter():
@@ -157,9 +157,9 @@ def scan(manager, transport="le", adapter_interface=None):
     _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
     _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
-    _LOGGER.debug("Total known objects: %d", len(list(all_objects())))
+    _LOGGER.debug("Total known objects: %d", len(list(get_objects())))
     _LOGGER.debug("Known adapters: %d", len(list(get_adapters())))
-    _LOGGER.debug("Total known devices: %d", len(list(all_objects(DEVICE_IFACE))))
+    _LOGGER.debug("Total known devices: %d", len(list(get_objects(DEVICE_IFACE))))
 
     adapter = get_adapter()
 
