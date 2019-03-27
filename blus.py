@@ -150,11 +150,11 @@ class DeviceObserver:
 
     # Subclass this to catch any events
 
-    def discovered(self, path, device):
+    def discovered(self, manager, path, device):
         # Override this to catch events
         pass
 
-    def seen(self, path, device):
+    def seen(self, manager, path, device):
         # Override this to catch events
         pass
 
@@ -184,7 +184,7 @@ class DeviceManager:
 
         device = interfaces.get(DEVICE_IFACE)
         if device:
-            self.observer.discovered(path, device)
+            self.observer.discovered(self, path, device)
 
         _LOGGER.debug("Added %s. Total known %d", path, len(self.objects))
 
@@ -210,7 +210,7 @@ class DeviceManager:
             q = quality_from_dbm(device.get("RSSI"))
             if q is not None:
                 _LOGGER_SCAN.debug("Seeing %s (%3s%%): %s", mac, q, alias)
-            self.observer.seen(path, device)
+            self.observer.seen(self, path, device)
 
     def _interfaces_removed(self, path, interfaces):
         if path not in self.objects:
@@ -349,11 +349,11 @@ if __name__ == "__main__":
     from pprint import pprint
 
     class Observer(DeviceObserver):
-        def seen(self, path, device):
+        def seen(self, manager, path, device):
             print("Discovered", path)
             # pprint(device)
 
-        def discovered(self, path, device):
+        def discovered(self, manager, path, device):
             print("Seeing", path)
             # pprint(device)
 
