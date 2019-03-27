@@ -264,6 +264,16 @@ def scan(manager, transport="le", device=None):
         for obj in get_objects():
             interfaces_added(*obj)
 
+        def _relevant_interfaces(interfaces):
+            irrelevant_interfaces = {
+                "org.freedesktop.DBus.Properties",
+                "org.freedesktop.DBus.Introspectable"}
+            return set(interfaces) - irrelevant_interfaces
+
+        for path, interfaces in manager.objects.items():
+            _LOGGER.debug(
+                "%-45s: %s", path, ", ".join(_relevant_interfaces(interfaces.keys())))
+
         _LOGGER.debug("... known interfaces added")
         _LOGGER.info("discovering...")
         if transport:
