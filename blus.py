@@ -130,11 +130,11 @@ class DeviceObserver:
 
     # Subclass this to catch any events
 
-    def discovered(self, path, device):
+    def discovered(self, adapter, path, device):
         # Override this to catch events
         pass
 
-    def seen(self, path, device):
+    def seen(self, adapter, path, device):
         # Override this to catch events
         pass
 
@@ -159,7 +159,7 @@ class DeviceManager:
 
         GLib.idle_add(periodic_check)
 
-    def added(self, path, obj):
+    def added(self, adapter, path, obj):
         if path in self.objects:
             _LOGGER.error("Object already known: %s", path)
             return
@@ -168,11 +168,11 @@ class DeviceManager:
 
         device = obj.get(DEVICE_IFACE)
         if device:
-            self.observer.discovered(path, device)
+            self.observer.discovered(adapter, path, device)
 
         _LOGGER.debug("Added %s. Total known %d", path, len(self.objects))
 
-    def changed(self, path, interface, changed, invalidated):
+    def changed(self, adapter, path, interface, changed, invalidated):
         if path not in self.objects:
             _LOGGER.error("unknown object %s changed", path)
             return
@@ -193,9 +193,9 @@ class DeviceManager:
             q = quality_from_dbm(device.get("RSSI"))
             if q is not None:
                 _LOGGER_SCAN.debug("Seeing %s (%3s%%): %s", mac, q, alias)
-            self.observer.seen(path, device)
+            self.observer.seen(adapter, path, device)
 
-    def removed(self, path):
+    def removed(self, adapter, path):
         if path not in self.objects:
             _LOGGER.error("Removed unknown device: %s", path)
             return
@@ -238,13 +238,13 @@ def scan(manager, transport="le", device=None):
 
     def properties_changed(_sender, path, _iface, _signal, changed):
         interface, changed, invalidated = changed
-        manager.changed(path, interface, changed, invalidated)
+        manager.changed(adapter, path, interface, changed, invalidated)
 
     def interfaces_added(path, interfaces):
-        manager.added(path, interfaces)
+        manager.added(adapter, path, interfaces)
 
     def interfaces_removed(path, interfaces):
-        manager.removed(path)
+        manager.removed(adapter, path)
 
     def start_discovery():
         _LOGGER.debug("adding known interfaces ...")
