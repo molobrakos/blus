@@ -247,8 +247,10 @@ def scan(manager, transport="le", adapter_interface=None):
 
     def start_discovery():
         _LOGGER.debug("adding known interfaces ...")
-        for path, interfaces in get_objects(DEVICE_IFACE):
+
+        for path, interfaces in get_objects():
             interfaces_added(path, interfaces)
+
         _LOGGER.debug("... known interfaces added")
         _LOGGER.info("discovering...")
         if transport:
