@@ -142,11 +142,11 @@ class DeviceObserver:
 
     # Subclass this to catch any events
 
-    def discovered(self, adapter, path, device):
+    def discovered(self, path, device):
         # Override this to catch events
         pass
 
-    def seen(self, adapter, path, device):
+    def seen(self, path, device):
         # Override this to catch events
         pass
 
@@ -171,20 +171,21 @@ class DeviceManager:
 
         GLib.idle_add(periodic_check)
 
-    def added(self, adapter, path, obj):
+    def interfaces_added(self, path, interfaces):
         if path in self.objects:
             _LOGGER.error("Object already known: %s", path)
             return
 
-        self.objects[path] = obj
+        self.objects[path] = interfaces
 
-        device = obj.get(DEVICE_IFACE)
+        device = interfaces.get(DEVICE_IFACE)
         if device:
-            self.observer.discovered(adapter, path, device)
+            self.observer.discovered(path, device)
 
         _LOGGER.debug("Added %s. Total known %d", path, len(self.objects))
 
-    def changed(self, adapter, path, interface, changed, invalidated):
+    def properties_changed(self, _sender, path, _iface, _signal, changed):
+        interface, changed, invalidated = changed
         if path not in self.objects:
             _LOGGER.error("unknown object %s changed", path)
             return
@@ -205,15 +206,18 @@ class DeviceManager:
             q = quality_from_dbm(device.get("RSSI"))
             if q is not None:
                 _LOGGER_SCAN.debug("Seeing %s (%3s%%): %s", mac, q, alias)
-            self.observer.seen(adapter, path, device)
+            self.observer.seen(path, device)
 
-    def removed(self, adapter, path):
+    def interfaces_removed(self, path, interfaces):
         if path not in self.objects:
             _LOGGER.error("Removed unknown device: %s", path)
             return
-        del self.objects[path]
+        for interface in interfaces:
+            del self.objects[path][interface]
+        if not len(self.objects[path]):
+            del self.objects[path]
 
-    def scan(manager, transport="le", device=None):
+    def scan(self, transport="le", device=None):
 
         # Valid values for tranport is
         # "le", "bredr", "auto"
@@ -247,21 +251,11 @@ class DeviceManager:
             ("off", "on")[adapter.Powered],
         )
 
-        def properties_changed(_sender, path, _iface, _signal, changed):
-            interface, changed, invalidated = changed
-            manager.changed(adapter, path, interface, changed, invalidated)
-
-        def interfaces_added(path, interfaces):
-            manager.added(adapter, path, interfaces)
-
-        def interfaces_removed(path, interfaces):
-            manager.removed(adapter, path)
-
         def start_discovery():
             _LOGGER.debug("adding known interfaces ...")
 
             for obj in get_objects():
-                interfaces_added(*obj)
+                self.interfaces_added(*obj)
 
             def _relevant_interfaces(interfaces):
                 irrelevant_interfaces = {
@@ -269,7 +263,7 @@ class DeviceManager:
                     "org.freedesktop.DBus.Introspectable"}
                 return set(interfaces) - irrelevant_interfaces
 
-            for path, interfaces in manager.objects.items():
+            for path, interfaces in self.objects.items():
                 _LOGGER.debug(
                     "%-45s: %s", path, ", ".join(_relevant_interfaces(interfaces.keys())))
 
@@ -341,12 +335,16 @@ if __name__ == "__main__":
 
     logging.captureWarnings(True)
 
-    class Observer(DeviceObserver):
-        def seen(self, adapter, path, device):
-            print("Discovered", path)
+    from pprint import pprint
 
-        def discovered(self, adapter, path, device):
+    class Observer(DeviceObserver):
+        def seen(self, path, device):
+            print("Discovered", path)
+            # pprint(device)
+
+        def discovered(self, path, device):
             print("Seeing", path)
+            # pprint(device)
 
     try:
         DeviceManager(Observer()).scan()
