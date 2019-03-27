@@ -153,10 +153,6 @@ class DeviceObserver:
 
 class DeviceManager:
 
-    # This device manager keeps a dict of all known/seen
-    # devices and notifies one connected observer.
-    # Subclass this for any other behaviour
-
     def __init__(self, observer):
         self.objects = {}
         self.observer = observer
