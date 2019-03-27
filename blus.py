@@ -159,16 +159,17 @@ def scan(manager, transport="le", adapter_interface=None):
     _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
     _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
-    adapters = all_objects(ADAPTER_IFACE)
     _LOGGER.debug("Total known objects: %d", len(all_objects()))
-    _LOGGER.debug("Known adapters: %d", len(all_objects(ADAPTER_IFACE)))
+    _LOGGER.debug("Known adapters: %d", len(get_adapters()))
     _LOGGER.debug("Total known devices: %d", len(all_objects(DEVICE_IFACE)))
 
-    if not adapters:
+    adapter = get_adapter()
+
+    if not adapter:
         exit("No adapter found")
 
     # for now, use first found adapter
-    path, _ = adapters[0]
+    path, _ = adapter
 
     adapter = proxy_for(path)
 
