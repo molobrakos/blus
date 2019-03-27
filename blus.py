@@ -214,9 +214,7 @@ def scan(manager, transport="le", device=None):
     if not adapter:
         exit("No adapter found")
 
-    # for now, use first found adapter
     path, _ = adapter
-
     adapter = proxy_for(path)
 
     _LOGGER.info(
