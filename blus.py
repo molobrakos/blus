@@ -73,6 +73,11 @@ def get_adapters():
     return get_objects(ADAPTER_IFACE)
 
 
+def get_devices():
+    """shorthand"""
+    return get_objects(DEVICE_IFACE)
+
+
 def get_adapter():
     """return first adapter"""
     return next(get_adapters(), None)
@@ -159,7 +164,7 @@ def scan(manager, transport="le", adapter_interface=None):
 
     _LOGGER.debug("Total known objects: %d", len(list(get_objects())))
     _LOGGER.debug("Known adapters: %d", len(list(get_adapters())))
-    _LOGGER.debug("Total known devices: %d", len(list(get_objects(DEVICE_IFACE))))
+    _LOGGER.debug("Total known devices: %d", len(list(get_devices())))
 
     adapter = get_adapter()
 
@@ -202,7 +207,7 @@ def scan(manager, transport="le", adapter_interface=None):
 
     def start_discovery():
         _LOGGER.debug("adding known interfaces ...")
-        for path, interfaces in all_objects(DEVICE_IFACE):
+        for path, interfaces in get_objects(DEVICE_IFACE):
             interfaces_added(path, interfaces)
         _LOGGER.debug("... known interfaces added")
         _LOGGER.info("discovering...")
