@@ -61,11 +61,11 @@ def object_manager():
 
 
 def all_objects(interface=None):
-    return [
+    return (
         (path, interfaces)
         for path, interfaces in object_manager().GetManagedObjects().items()
         if interface in interfaces or interface is None
-    ]
+    )
 
 
 def get_adapters():
@@ -75,7 +75,7 @@ def get_adapters():
 
 def get_adapter():
     """return first adapter"""
-    return get_adapters()[0]
+    return next(get_adapters(), None)
 
 
 class DeviceObserver:
