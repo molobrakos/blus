@@ -92,6 +92,32 @@ def get_adapter():
     return next(get_adapters(), None)
 
 
+def _get_branch(interface, branch, path):
+    """shorthand"""
+    return [
+        (path, interfaces)
+        for path, interfaces
+        in get_objects(interface)
+        if not path
+        or path == interfaces[interface][branch]
+    ]
+
+
+def get_services(device=None):
+    """shorthand"""
+    return _get_branch(SERVICE_FACE, "Device", device)
+
+
+def get_characteristics(service=None):
+    """shorthand"""
+    return _get_branch(CHARACTERISTIC_IFACE, "Service", service)
+
+
+def get_descriptors(characteristic=None):
+    """shorthand"""
+    return _get_branch(DESCRIPTOR_FACE, "Characteristic", characteristic)
+
+
 class DeviceObserver:
 
     # Subclass this to catch any events
