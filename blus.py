@@ -304,19 +304,19 @@ class DeviceManager:
         GLib.idle_add(start_discovery)
 
         with object_manager().InterfacesAdded.connect(
-                interfaces_added
+                self.interfaces_added
         ), object_manager().InterfacesRemoved.connect(
-            interfaces_removed
+            self.interfaces_removed
         ), pydbus.SystemBus().subscribe(
             iface=PROPERTIES_IFACE,
             signal="PropertiesChanged",
             arg0=DEVICE_IFACE,
-            signal_fired=properties_changed,
+            signal_fired=self.properties_changed,
         ), pydbus.SystemBus().subscribe(
             iface=PROPERTIES_IFACE,
             signal="PropertiesChanged",
             arg0=DESCRIPTOR_IFACE,
-            signal_fired=properties_changed,
+            signal_fired=self.properties_changed,
         ):
             run()
 
