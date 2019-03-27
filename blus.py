@@ -49,14 +49,17 @@ def proxy_for(path=None):
 
 
 def profile_manager():
+    """located at bus"""
     return proxy_for()
 
 
 def agent_manager():
+    """located at bus"""
     return proxy_for()
 
 
 def object_manager():
+    """located at root"""
     return proxy_for(ROOT_PATH)
 
 
