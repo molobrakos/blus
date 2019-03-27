@@ -213,112 +213,112 @@ class DeviceManager:
             return
         del self.objects[path]
 
+    def scan(manager, transport="le", device=None):
 
-def scan(manager, transport="le", device=None):
+        # Valid values for tranport is
+        # "le", "bredr", "auto"
+        # https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/device-api.txt
 
-    # Valid values for tranport is
-    # "le", "bredr", "auto"
-    # https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/device-api.txt
+        # For asyncio this can be run in it's own thread
+        # But the callback in DeviceObserver needs to be
+        # bridged with loop.call_soon_threadsafe then
 
-    # For asyncio this can be run in it's own thread
-    # But the callback in DeviceObserver needs to be
-    # bridged with loop.call_soon_threadsafe then
+        _LOGGER.info("%s %s %s", __name__, __version__, __file__)
+        _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
+        _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
-    _LOGGER.info("%s %s %s", __name__, __version__, __file__)
-    _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
-    _LOGGER.info("Bluez version: %d.%d", *bluez_version())
+        _LOGGER.debug("Total known objects: %d", _len(get_objects()))
+        _LOGGER.debug("Known adapters: %d", _len(get_adapters()))
+        _LOGGER.debug("Total known devices: %d", _len(get_devices()))
 
-    _LOGGER.debug("Total known objects: %d", _len(get_objects()))
-    _LOGGER.debug("Known adapters: %d", _len(get_adapters()))
-    _LOGGER.debug("Total known devices: %d", _len(get_devices()))
+        adapter = get_adapter(device)
 
-    adapter = get_adapter(device)
+        if not adapter:
+            exit("No adapter found")
 
-    if not adapter:
-        exit("No adapter found")
+        path, _ = adapter
+        adapter = proxy_for(path)
 
-    path, _ = adapter
-    adapter = proxy_for(path)
+        _LOGGER.info(
+            "Adapter %s (%s) on %s is powered %s",
+            adapter.Name,
+            adapter.Address,
+            path,
+            ("off", "on")[adapter.Powered],
+        )
 
-    _LOGGER.info(
-        "Adapter %s (%s) on %s is powered %s",
-        adapter.Name,
-        adapter.Address,
-        path,
-        ("off", "on")[adapter.Powered],
-    )
+        def properties_changed(_sender, path, _iface, _signal, changed):
+            interface, changed, invalidated = changed
+            manager.changed(adapter, path, interface, changed, invalidated)
 
-    def properties_changed(_sender, path, _iface, _signal, changed):
-        interface, changed, invalidated = changed
-        manager.changed(adapter, path, interface, changed, invalidated)
+        def interfaces_added(path, interfaces):
+            manager.added(adapter, path, interfaces)
 
-    def interfaces_added(path, interfaces):
-        manager.added(adapter, path, interfaces)
+        def interfaces_removed(path, interfaces):
+            manager.removed(adapter, path)
 
-    def interfaces_removed(path, interfaces):
-        manager.removed(adapter, path)
+        def start_discovery():
+            _LOGGER.debug("adding known interfaces ...")
 
-    def start_discovery():
-        _LOGGER.debug("adding known interfaces ...")
+            for obj in get_objects():
+                interfaces_added(*obj)
 
-        for obj in get_objects():
-            interfaces_added(*obj)
+            def _relevant_interfaces(interfaces):
+                irrelevant_interfaces = {
+                    "org.freedesktop.DBus.Properties",
+                    "org.freedesktop.DBus.Introspectable"}
+                return set(interfaces) - irrelevant_interfaces
 
-        def _relevant_interfaces(interfaces):
-            irrelevant_interfaces = {
-                "org.freedesktop.DBus.Properties",
-                "org.freedesktop.DBus.Introspectable"}
-            return set(interfaces) - irrelevant_interfaces
+            for path, interfaces in manager.objects.items():
+                _LOGGER.debug(
+                    "%-45s: %s", path, ", ".join(_relevant_interfaces(interfaces.keys())))
 
-        for path, interfaces in manager.objects.items():
-            _LOGGER.debug(
-                "%-45s: %s", path, ", ".join(_relevant_interfaces(interfaces.keys())))
+            _LOGGER.debug("... known interfaces added")
+            _LOGGER.info("discovering...")
+            if transport:
+                discovery_filter = dict(
+                    Transport=pydbus.Variant("s", transport))
+            else:
+                discovery_filter = {}
 
-        _LOGGER.debug("... known interfaces added")
-        _LOGGER.info("discovering...")
-        if transport:
-            discovery_filter = dict(
-                Transport=pydbus.Variant("s", transport))
-        else:
-            discovery_filter = {}
-        adapter.SetDiscoveryFilter(discovery_filter)
-        adapter.StartDiscovery()
+            adapter.SetDiscoveryFilter(discovery_filter)
+            adapter.StartDiscovery()
 
-        return False
+            return False
 
-    def run():
-        main_loop = GLib.MainLoop()
-        try:
-            _LOGGER.info("Running main loop")
-            main_loop.run()
-        except KeyboardInterrupt:
-            _LOGGER.debug("Keyboard interrupt, exiting")
-            raise
-        except Exception:
-            _LOGGER.exception("Got exception")
-            raise
-        finally:
-            main_loop.quit()
-            pass
+        def run():
+            main_loop = GLib.MainLoop()
+            try:
+                _LOGGER.info("Running main loop")
+                main_loop.run()
+            except KeyboardInterrupt:
+                _LOGGER.debug("Keyboard interrupt, exiting")
+                raise
+            except Exception:
+                _LOGGER.exception("Got exception")
+                raise
+            finally:
+                main_loop.quit()
+                pass
 
-    GLib.idle_add(start_discovery)
+        GLib.idle_add(start_discovery)
 
-    with object_manager().InterfacesAdded.connect(
-        interfaces_added
-    ), object_manager().InterfacesRemoved.connect(
-        interfaces_removed
-    ), pydbus.SystemBus().subscribe(
-        iface=PROPERTIES_IFACE,
-        signal="PropertiesChanged",
-        arg0=DEVICE_IFACE,
-        signal_fired=properties_changed,
-    ), pydbus.SystemBus().subscribe(
-        iface=PROPERTIES_IFACE,
-        signal="PropertiesChanged",
-        arg0=DESCRIPTOR_IFACE,
-        signal_fired=properties_changed,
-    ):
-        run()
+        with object_manager().InterfacesAdded.connect(
+                interfaces_added
+        ), object_manager().InterfacesRemoved.connect(
+            interfaces_removed
+        ), pydbus.SystemBus().subscribe(
+            iface=PROPERTIES_IFACE,
+            signal="PropertiesChanged",
+            arg0=DEVICE_IFACE,
+            signal_fired=properties_changed,
+        ), pydbus.SystemBus().subscribe(
+            iface=PROPERTIES_IFACE,
+            signal="PropertiesChanged",
+            arg0=DESCRIPTOR_IFACE,
+            signal_fired=properties_changed,
+        ):
+            run()
 
 
 if __name__ == "__main__":
@@ -349,6 +349,6 @@ if __name__ == "__main__":
             print("Seeing", path)
 
     try:
-        scan(DeviceManager(Observer()))
+        DeviceManager(Observer()).scan()
     except KeyboardInterrupt:
         pass
