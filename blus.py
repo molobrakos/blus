@@ -291,7 +291,7 @@ class DeviceManager:
 
             return False
 
-        def run():
+        def run_loop():
             main_loop = GLib.MainLoop()
             try:
                 _LOGGER.info("Running main loop")
@@ -323,7 +323,7 @@ class DeviceManager:
             arg0=DESCRIPTOR_IFACE,
             signal_fired=self._properties_changed,
         ):
-            run()
+            run_loop()
 
 
 if __name__ == "__main__":
