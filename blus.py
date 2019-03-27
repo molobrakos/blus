@@ -157,9 +157,9 @@ def scan(manager, transport="le", adapter_interface=None):
     _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
     _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
-    _LOGGER.debug("Total known objects: %d", len(all_objects()))
-    _LOGGER.debug("Known adapters: %d", len(get_adapters()))
-    _LOGGER.debug("Total known devices: %d", len(all_objects(DEVICE_IFACE)))
+    _LOGGER.debug("Total known objects: %d", len(list(all_objects())))
+    _LOGGER.debug("Known adapters: %d", len(list(get_adapters())))
+    _LOGGER.debug("Total known devices: %d", len(list(all_objects(DEVICE_IFACE))))
 
     adapter = get_adapter()
 
@@ -249,6 +249,8 @@ def scan(manager, transport="le", adapter_interface=None):
 
 
 if __name__ == "__main__":
+
+    logging.basicConfig(level=logging.DEBUG)
 
     class Observer(DeviceObserver):
         def seen(self, path, device):
