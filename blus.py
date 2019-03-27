@@ -146,57 +146,68 @@ class DeviceManager:
     # Subclass this for any other behaviour
 
     def __init__(self, observer):
-        self.devices = {}
+        self.objects = {}
         self.observer = observer
 
         def periodic_check():
             try:
                 _LOGGER.debug(
-                    "Periodic check, known devices: %d", len(self.devices)
+                    "Periodic check, known objects: %d", len(self.objects)
                 )
             finally:
                 GLib.timeout_add_seconds(10, periodic_check)
 
         GLib.idle_add(periodic_check)
 
-    def added(self, path, device):
-        if path in self.devices:
-            _LOGGER.error("Device already known: %s", path)
+    def added(self, path, obj):
+        if path in self.objects:
+            _LOGGER.error("Object already known: %s", path)
             return
-        self.devices[path] = device
-        self.observer.discovered(path, device)
-        _LOGGER.debug("Added %s. Total known %d", path, len(self.devices))
 
-    def changed(self, path, changed, invalidated):
-        if path not in self.devices:
-            _LOGGER.error("unknown device %s changed", path)
+        self.objects[path] = obj
+
+        device = obj.get(DEVICE_IFACE)
+        if device:
+            self.observer.discovered(path, device)
+
+        _LOGGER.debug("Added %s. Total known %d", path, len(self.objects))
+
+    def changed(self, path, interface, changed, invalidated):
+        if path not in self.objects:
+            _LOGGER.error("unknown object %s changed", path)
             return
+
         if invalidated:
             _LOGGER.debug("invalidated for %s: %s", path, invalidated)
             for key in invalidated:
-                del self.devices[path][key]
+                del self.objects[path][interface][key]
+
         if changed:
-            self.devices[path].update(changed)
-            _LOGGER_SCAN.debug("%s properties changed", path)
+            self.objects[path][interface].update(changed)
+            _LOGGER_SCAN.debug("%s properties changed: %s", path, changed)
 
-        device = self.devices[path]
-
-        alias = device.get("Alias", path)
-        mac = device.get("Address")
-        q = quality_from_dbm(device.get("RSSI"))
-        if q is not None:
-            _LOGGER_SCAN.debug("Seeing %s (%3s%%): %s", mac, q, alias)
-
-        self.observer.seen(path, self.devices[path])
+        device = self.objects[path].get(DEVICE_IFACE)
+        if device:
+            alias = device.get("Alias", path)
+            mac = device.get("Address")
+            q = quality_from_dbm(device.get("RSSI"))
+            if q is not None:
+                _LOGGER_SCAN.debug("Seeing %s (%3s%%): %s", mac, q, alias)
+            self.observer.seen(path, device)
 
     def removed(self, path):
-        if path not in self.devices:
+        if path not in self.objects:
             _LOGGER.error("Removed unknown device: %s", path)
             return
-        del self.devices[path]
+        del self.objects[path]
 
 
 def scan(manager, transport="le", device=None):
+
+    # Valid values for tranport is
+    # "le", "bredr", "auto"
+    # https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/device-api.txt
+
     # For asyncio this can be run in it's own thread
     # But the callback in DeviceObserver needs to be
     # bridged with loop.call_soon_threadsafe then
@@ -225,23 +236,12 @@ def scan(manager, transport="le", device=None):
         ("off", "on")[adapter.Powered],
     )
 
-    def properties_changed(_sender, path, _iface, _signal, interfaces):
-        if interfaces[0] != DEVICE_IFACE:
-            _LOGGER.error("unknown %s %s", path, interfaces)
-            return
-        changed = interfaces[1]
-        manager.changed(path, changed, None)
+    def properties_changed(_sender, path, _iface, _signal, changed):
+        interface, changed, invalidated = changed
+        manager.changed(path, interface, changed, invalidated)
 
     def interfaces_added(path, interfaces):
-        if DEVICE_IFACE not in interfaces:
-            _LOGGER.error(
-                "Unknown interface added on path %s: %s", path, interfaces
-            )
-            # e.g. /org/bluez/hci0/dev_11_22_33_44_55_66/fd1 (MediaTransport1)
-            return
-        device = interfaces[DEVICE_IFACE]
-        _LOGGER.debug("Added %s: %s", path, device["Alias"])
-        manager.added(path, device)
+        manager.added(path, interfaces)
 
     def interfaces_removed(path, interfaces):
         manager.removed(path)
@@ -255,12 +255,10 @@ def scan(manager, transport="le", device=None):
         _LOGGER.debug("... known interfaces added")
         _LOGGER.info("discovering...")
         if transport:
-            discovery_filter = dict(Transport=pydbus.Variant("s", transport))
+            discovery_filter = dict(
+                Transport=pydbus.Variant("s", transport))
         else:
             discovery_filter = {}
-        # discovery_filter = {"Transport": "le"}
-        # discovery_filter = {"Transport": "bredr"}
-        # discovery_filter = {"Transport": "auto"}
         adapter.SetDiscoveryFilter(discovery_filter)
         adapter.StartDiscovery()
         _LOGGER.info("done")
