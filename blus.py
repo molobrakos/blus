@@ -79,35 +79,43 @@ def object_manager():
     return proxy_for(ROOT_PATH)
 
 
-def get_objects(*interface):
+def get_remote_objects():
     """
-    Return all known objects matching any interface in parameter interface
+    Return all known objects
+    """
+    _LOGGER.info("Getting remote objects")
+    return object_manager().GetManagedObjects().items()
+
+
+def get_objects(*interface, objects=None):
+    """
+    Return all objects in list of objects matching any interface in parameter interface
     """
     return (
         (path, interfaces)
         for path, interfaces
-        in object_manager().GetManagedObjects().items()
+        in objects or get_remote_objects()
         if not interface
         or any(candidate in interfaces
                for candidate in interface)
     )
 
 
-def get_adapters(device=None):
+def get_adapters(objects=None):
     """shorthand"""
-    return get_objects(ADAPTER_IFACE)
+    return get_objects(ADAPTER_IFACE, objects=objects)
 
 
-def get_devices():
+def get_devices(objects=None):
     """shorthand"""
-    return get_objects(DEVICE_IFACE)
+    return get_objects(DEVICE_IFACE, objects=objects)
 
 
-def get_adapter(device=None):
+def get_adapter(device=None, objects=None):
     """return first adapter"""
     return next(((path, interface)
                  for path, interface
-                 in get_adapters()
+                 in get_adapters(objects)
                  if not device
                  or device in path), None)
 
@@ -215,6 +223,9 @@ class DeviceManager:
         if not len(self.objects[path]):
             del self.objects[path]
 
+    def services(self, device):
+        pass
+
     def scan(self, transport="le", device=None):
 
         # Valid values for tranport is
@@ -225,15 +236,17 @@ class DeviceManager:
         # But the callback in DeviceObserver needs to be
         # bridged with loop.call_soon_threadsafe then
 
+        objects = list(get_remote_objects())
+
         _LOGGER.info("%s %s %s", __name__, __version__, __file__)
         _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
         _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
-        _LOGGER.debug("Total known objects: %d", _len(get_objects()))
-        _LOGGER.debug("Known adapters: %d", _len(get_adapters()))
-        _LOGGER.debug("Total known devices: %d", _len(get_devices()))
+        _LOGGER.debug("Total known objects: %d", _len(objects))
+        _LOGGER.debug("Known adapters: %d", _len(get_adapters(objects)))
+        _LOGGER.debug("Total known devices: %d", _len(get_devices(objects)))
 
-        adapter = get_adapter(device)
+        adapter = get_adapter(device, objects)
 
         if not adapter:
             exit("No adapter found")
@@ -252,7 +265,7 @@ class DeviceManager:
         def start_discovery():
             _LOGGER.debug("adding known interfaces ...")
 
-            for obj in get_objects():
+            for obj in objects:
                 self._interfaces_added(*obj)
 
             def _relevant_interfaces(interfaces):
