@@ -283,7 +283,7 @@ def scan(manager, transport="le", device=None):
             discovery_filter = {}
         adapter.SetDiscoveryFilter(discovery_filter)
         adapter.StartDiscovery()
-        _LOGGER.info("done")
+
         return False
 
     def run():
@@ -311,6 +311,11 @@ def scan(manager, transport="le", device=None):
         iface=PROPERTIES_IFACE,
         signal="PropertiesChanged",
         arg0=DEVICE_IFACE,
+        signal_fired=properties_changed,
+    ), pydbus.SystemBus().subscribe(
+        iface=PROPERTIES_IFACE,
+        signal="PropertiesChanged",
+        arg0=DESCRIPTOR_IFACE,
         signal_fired=properties_changed,
     ):
         run()
