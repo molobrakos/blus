@@ -42,7 +42,7 @@ def quality_from_dbm(dbm):
         return 2 * (dbm + 100)
 
 
-def glen(g):
+def _len(g):
     """len of generator"""
     return sum(1 for _ in g)
 
@@ -202,9 +202,9 @@ def scan(manager, transport="le", adapter_interface=None):
     _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
     _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
-    _LOGGER.debug("Total known objects: %d", glen(get_objects()))
-    _LOGGER.debug("Known adapters: %d", glen(get_adapters()))
-    _LOGGER.debug("Total known devices: %d", glen(get_devices()))
+    _LOGGER.debug("Total known objects: %d", _len(get_objects()))
+    _LOGGER.debug("Known adapters: %d", _len(get_adapters()))
+    _LOGGER.debug("Total known devices: %d", _len(get_devices()))
 
     adapter = get_adapter()
 
