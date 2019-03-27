@@ -63,11 +63,17 @@ def object_manager():
     return proxy_for(ROOT_PATH)
 
 
-def get_objects(interface=None):
+def get_objects(*interface):
+    """
+    Return all known objects matching any interface in parameter interface
+    """
     return (
         (path, interfaces)
-        for path, interfaces in object_manager().GetManagedObjects().items()
-        if interface in interfaces or interface is None
+        for path, interfaces
+        in object_manager().GetManagedObjects().items()
+        if not interface
+        or any(candidate in interfaces
+               for candidate in interface)
     )
 
 
