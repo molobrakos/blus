@@ -282,7 +282,7 @@ def scan(manager, transport="le", device=None):
             _LOGGER.info("Running main loop")
             main_loop.run()
         except KeyboardInterrupt:
-            _LOGGER.info("Keyboard interrupt, exiting")
+            _LOGGER.debug("Keyboard interrupt, exiting")
             raise
         except Exception:
             _LOGGER.exception("Got exception")
@@ -333,4 +333,7 @@ if __name__ == "__main__":
         def discovered(self, adapter, path, device):
             print("Seeing", path)
 
-    scan(DeviceManager(Observer()))
+    try:
+        scan(DeviceManager(Observer()))
+    except KeyboardInterrupt:
+        pass
