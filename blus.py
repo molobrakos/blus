@@ -19,11 +19,23 @@ DATEFMT = "%y-%m-%d %H:%M.%S"
 
 ROOT_PATH = "/"
 BUS_NAME = "org.bluez"
+
+PROPERTIES_IFACE = "org.freedesktop.DBus.Properties"
+OBJECT_MANAGER_IFACE = "org.freedesktop.DBus.ObjectManager"
+
 ADAPTER_IFACE = "org.bluez.Adapter1"
 DEVICE_IFACE = "org.bluez.Device1"
 PROFILE_MANAGER_IFACE = "org.bluez.ProfileManager1"
-OBJECT_MANAGER_IFACE = "org.freedesktop.DBus.ObjectManager"
-PROPERTIES_IFACE = "org.freedesktop.DBus.Properties"
+
+GATT_MANAGER_IFACE = "org.bluez.GattManager1"
+GATT_PROFILE_IFACE = "org.bluez.GattProfile1"
+SERVICE_IFACE = "org.bluez.GattService1"
+CHARACTERISTIC_IFACE = "org.bluez.GattCharacteristic1"
+DESCRIPTOR_IFACE = "org.bluez.GattDescriptor1"
+LE_ADVERTISING_MANAGER_IFACE = "org.bluez.LEAdvertisingManager1"
+LE_ADVERTISEMENT_IFACE = "org.bluez.LEAdvertisement1"
+
+BATTERY_IFACE = "org.bluez.Battery1"
 
 
 def bluez_version():
@@ -299,10 +311,10 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     class Observer(DeviceObserver):
-        def seen(self, path, device):
+        def seen(self, adapter, path, device):
             print("Discovered", path)
 
-        def discovered(self, path, device):
+        def discovered(self, adapter, path, device):
             print("Seeing", path)
 
     scan(DeviceManager(Observer()))
