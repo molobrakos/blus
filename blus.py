@@ -68,6 +68,18 @@ def all_objects(interface=None):
     ]
 
 
+def get_adapters():
+    """shorthand"""
+    return all_objects(ADAPTER_IFACE)
+
+
+def get_adapter(interface=None):
+    return next(adapter
+                for adapter in get_adapters()
+                if not interface
+                or interface == adapter["interface"])
+
+
 class DeviceObserver:
 
     # Subclass this to catch any events
