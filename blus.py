@@ -82,7 +82,7 @@ def get_objects(*interface):
     )
 
 
-def get_adapters():
+def get_adapters(device=None):
     """shorthand"""
     return get_objects(ADAPTER_IFACE)
 
@@ -92,9 +92,13 @@ def get_devices():
     return get_objects(DEVICE_IFACE)
 
 
-def get_adapter():
+def get_adapter(device=None):
     """return first adapter"""
-    return next(get_adapters(), None)
+    return next(((path, interface)
+                 for path, interface
+                 in get_adapters()
+                 if not device
+                 or device in path), None)
 
 
 def _get_branch(interface, branch, path):
@@ -193,7 +197,7 @@ class DeviceManager:
         del self.devices[path]
 
 
-def scan(manager, transport="le", adapter_interface=None):
+def scan(manager, transport="le", device=None):
     # For asyncio this can be run in it's own thread
     # But the callback in DeviceObserver needs to be
     # bridged with loop.call_soon_threadsafe then
@@ -206,7 +210,7 @@ def scan(manager, transport="le", adapter_interface=None):
     _LOGGER.debug("Known adapters: %d", _len(get_adapters()))
     _LOGGER.debug("Total known devices: %d", _len(get_devices()))
 
-    adapter = get_adapter()
+    adapter = get_adapter(device)
 
     if not adapter:
         exit("No adapter found")
