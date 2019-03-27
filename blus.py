@@ -42,6 +42,11 @@ def quality_from_dbm(dbm):
         return 2 * (dbm + 100)
 
 
+def glen(g):
+    """len of generator"""
+    return sum(1 for _ in g)
+
+
 def proxy_for(path=None):
     bus = pydbus.SystemBus()
     proxy = bus.get(BUS_NAME, path)
@@ -197,9 +202,9 @@ def scan(manager, transport="le", adapter_interface=None):
     _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
     _LOGGER.info("Bluez version: %d.%d", *bluez_version())
 
-    _LOGGER.debug("Total known objects: %d", len(list(get_objects())))
-    _LOGGER.debug("Known adapters: %d", len(list(get_adapters())))
-    _LOGGER.debug("Total known devices: %d", len(list(get_devices())))
+    _LOGGER.debug("Total known objects: %d", glen(get_objects()))
+    _LOGGER.debug("Known adapters: %d", glen(get_adapters()))
+    _LOGGER.debug("Total known devices: %d", glen(get_devices()))
 
     adapter = get_adapter()
 
