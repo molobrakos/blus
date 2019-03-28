@@ -5,22 +5,22 @@ Use like:
 ```python
 class Observer(blus.DeviceObserver):
 
-  def discovered(self, path, device):
+  def discovered(self, manager, path, device):
     alias = device.get("Alias")
     print("Discovered %s at %s" % (alias, path))
 
-  def seen(self, path, device):
+  def seen(self, manager, path, device):
     alias = device.get("Alias")
     print("Seeing %s at %s" % (alias, path))
-    
+
     # device = blus.proxy_for(device)
     # device.trusted = True
     # device.Pair()
     # etc ...
-    
 
-blus.scan(blus.DeviceManager(Observer()), transport="le")
+
+blus.DeviceManager(Observer()).scan(transport="le")
 ```
-  
+
   Other example:
   https://github.com/molobrakos/toothbrush/blob/master/toothbrush
