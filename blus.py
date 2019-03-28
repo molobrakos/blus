@@ -92,6 +92,11 @@ def get_remote_objects():
 
 def register_spp_profile(read_callback):
 
+    try:
+        from pydbus import unixfd
+    except ImportError:
+        exit("Requires support for unix fd in pydbus")
+
     UUID_SPP = "00001101-0000-1000-8000-00805f9b34fb"
 
     class Profile:
