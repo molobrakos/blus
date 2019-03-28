@@ -32,11 +32,9 @@ class DeviceObserver:
     # Subclass this to catch any events
 
     def discovered(self, manager, path, device):
-        # Override this to catch events
         self.seen(manager, path, device)
 
     def seen(self, manager, path, device):
-        # Override this to catch events
         pass
 
 
@@ -212,21 +210,16 @@ class DeviceManager:
             del self.objects[path]
 
     def scan(self, transport="le", device=None):
+        """
+        Valid values for tranport: "le", "bredr", "auto"
+        https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/device-api.txt
 
-        # Valid values for tranport is
-        # "le", "bredr", "auto"
-        # https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/device-api.txt
-
-        # For asyncio this can be run in it's own thread
-        # But the callback in DeviceObserver needs to be
-        # bridged with loop.call_soon_threadsafe then
+        For asyncio this can be run in it's own thread
+        But the callback in DeviceObserver needs to be
+        bridged with loop.call_soon_threadsafe then
+        """
 
         def start_discovery():
-
-            _LOGGER.debug("adding known interfaces ...")
-            # for path, interfaces in objects:
-            #    self.objects[path] = interfaces
-            _LOGGER.debug("... known interfaces added")
 
             _LOGGER.debug("Discovery signals for known devices...")
             for path, interfaces in self.objects.items():
