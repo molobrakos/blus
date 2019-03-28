@@ -93,7 +93,7 @@ def get_remote_objects():
 def register_spp_profile(read_callback):
 
     try:
-        from pydbus import unixfd
+        from pydbus import unixfd  # noqa: F401
     except ImportError:
         exit("Requires support for unix fd in pydbus")
 
@@ -140,8 +140,8 @@ def register_spp_profile(read_callback):
                     GLib.IO_IN | GLib.IO_PRI,
                     fd_read_callback,
                 )
-            except:
-                _LOGGER.exception("foo")
+            except OSError as e:
+                _LOGGER.error("IO Error: %s", e)
 
         def RequestDisconnection(self, path):
             _LOGGER.debug("RequestDisconnection: %s", path)
@@ -234,7 +234,8 @@ class DeviceManager:
 
     def get_objects(self, *interface):
         """
-        Return all objects in list of objects matching any interface in parameter interface
+        Return all objects in list of objects matching any interface in
+        parameter interface
         """
         return (
             (path, interfaces)
@@ -412,7 +413,7 @@ class DeviceManager:
                 self.adapter.StartDiscovery()
                 _LOGGER.info("... discovery started")
             except GLib.Error as e:
-                _LOGGER.error("Could not start discovery")
+                _LOGGER.error("Could not start discovery: %s", e)
 
             return False
 
