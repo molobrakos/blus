@@ -2,7 +2,12 @@
 
 __version__ = "0.0.16"
 
-from .util import get_remote_objects, get_object_manager, proxy_for
+from .util import (
+    get_remote_objects,
+    get_object_manager,
+    proxy_for,
+    bluez_version,
+)
 from .const import (
     ADAPTER_IFACE,
     DEVICE_IFACE,
@@ -20,6 +25,7 @@ __all__ = [
     "get_remote_objects",
     "get_object_manager",
     "proxy_for",
+    "bluez_version",
     "ADAPTER_IFACE",
     "DEVICE_IFACE",
     "PROPERTIES_IFACE",
