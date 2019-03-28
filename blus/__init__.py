@@ -22,7 +22,7 @@ from .const import (
 )
 
 
-__version__ = "0.0.15"
+__version__ = "0.0.16"
 
 
 _LOGGER = logging.getLogger(__name__)
