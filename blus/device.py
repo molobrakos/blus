@@ -206,7 +206,6 @@ class DeviceManager:
             del self.objects[path][interface]
 
         if not self.objects[path]:
-            _LOGGER.debug("No interfaces left, removing object at %s", path)
             del self.objects[path]
 
     def scan(self, transport="le", device=None):
