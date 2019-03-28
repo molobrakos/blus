@@ -472,16 +472,11 @@ if __name__ == "__main__":
 
     logging.captureWarnings(True)
 
-    from pprint import pprint
-
     class Observer(DeviceObserver):
         def seen(self, manager, path, device):
+            from pprint import pprint
             print("Discovered", path)
-            # pprint(device)
-
-        def discovered(self, manager, path, device):
-            print("Seeing", path)
-            # pprint(device)
+            pprint(device)
 
     try:
         DeviceManager(Observer()).scan()
