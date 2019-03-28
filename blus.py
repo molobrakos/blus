@@ -60,21 +60,22 @@ def _len(g):
 
 
 def proxy_for(path=None):
+    _LOGGER.debug("Getting proxy object for %s", path)
     bus = pydbus.SystemBus()
     return bus.get(BUS_NAME, path)
 
 
-def profile_manager():
+def get_profile_manager():
     """located at service root (/org/bluez)"""
     return proxy_for()
 
 
-def agent_manager():
+def get_agent_manager():
     """located at service root (/org/bluez)"""
     return proxy_for()
 
 
-def object_manager():
+def get_object_manager():
     """located at root (/)"""
     return proxy_for(ROOT_PATH)
 
@@ -83,67 +84,8 @@ def get_remote_objects():
     """
     Return all known objects
     """
-    _LOGGER.info("Getting remote objects")
-    return object_manager().GetManagedObjects().items()
-
-
-def get_objects(*interface, objects=None):
-    """
-    Return all objects in list of objects matching any interface in parameter interface
-    """
-    return (
-        (path, interfaces)
-        for path, interfaces
-        in objects or get_remote_objects()
-        if not interface
-        or any(candidate in interfaces
-               for candidate in interface)
-    )
-
-
-def get_adapters(objects=None):
-    """shorthand"""
-    return get_objects(ADAPTER_IFACE, objects=objects)
-
-
-def get_devices(objects=None):
-    """shorthand"""
-    return get_objects(DEVICE_IFACE, objects=objects)
-
-
-def get_adapter(device=None, objects=None):
-    """return first adapter"""
-    return next(((path, interface)
-                 for path, interface
-                 in get_adapters(objects)
-                 if not device
-                 or device in path), None)
-
-
-def _get_branch(interface, branch, path):
-    """shorthand"""
-    return [
-        (path, interfaces)
-        for path, interfaces
-        in get_objects(interface)
-        if not path
-        or path == interfaces[interface][branch]
-    ]
-
-
-def get_services(device=None):
-    """shorthand"""
-    return _get_branch(SERVICE_FACE, "Device", device)
-
-
-def get_characteristics(service=None):
-    """shorthand"""
-    return _get_branch(CHARACTERISTIC_IFACE, "Service", service)
-
-
-def get_descriptors(characteristic=None):
-    """shorthand"""
-    return _get_branch(DESCRIPTOR_FACE, "Characteristic", characteristic)
+    _LOGGER.debug("Getting all known remote objects (only needed once)")
+    return get_object_manager().GetManagedObjects()
 
 
 class DeviceObserver:
@@ -160,10 +102,34 @@ class DeviceObserver:
 
 
 class DeviceManager:
+    def __init__(self, observer, device=None):
 
-    def __init__(self, observer):
-        self.objects = {}
+        self.objects = get_remote_objects()
         self.observer = observer
+
+        _LOGGER.info("%s %s %s", __name__, __version__, __file__)
+        _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
+        _LOGGER.info("Bluez version: %d.%d", *bluez_version())
+
+        _LOGGER.info("Total known objects: %d", len(self.objects))
+        _LOGGER.info("Known adapters: %d", _len(self.adapters))
+        _LOGGER.info("Total known devices: %d", _len(self.devices))
+
+        adapter = self.get_adapter(device)
+
+        if not adapter:
+            exit("No adapter found")
+
+        path, _ = adapter
+        self.adapter = proxy_for(path)
+
+        _LOGGER.info(
+            "Adapter %s (%s) on %s is powered %s",
+            self.adapter.Name,
+            self.adapter.Address,
+            path,
+            ("off", "on")[self.adapter.Powered],
+        )
 
         def periodic_check():
             try:
@@ -175,12 +141,78 @@ class DeviceManager:
 
         GLib.idle_add(periodic_check)
 
-    def _interfaces_added(self, path, interfaces):
-        if path in self.objects:
-            _LOGGER.error("Object already known: %s", path)
-            return
+    def get_objects(self, *interface):
+        """
+        Return all objects in list of objects matching any interface in parameter interface
+        """
+        return (
+            (path, interfaces)
+            for path, interfaces in self.objects.items()
+            if not interface
+            or any(candidate in interfaces for candidate in interface)
+        )
 
-        self.objects[path] = interfaces
+    @property
+    def adapters(self):
+        """shorthand"""
+        return self.get_objects(ADAPTER_IFACE)
+
+    @property
+    def devices(self):
+        """shorthand"""
+        return self.get_objects(DEVICE_IFACE)
+
+    def get_adapter(self, device=None):
+        """return first adapter"""
+        return next(
+            (
+                (path, interface)
+                for path, interface in self.adapters
+                if not device or device in path
+            ),
+            None,
+        )
+
+    def _get_branch(self, interface, parent_name, parent_path):
+        """shorthand"""
+        return (
+            (path, interfaces[interface])
+            for path, interfaces in self.get_objects(interface)
+            if not parent_path
+            or parent_path == interfaces[interface][parent_name]
+        )
+
+    def services(self, device=None):
+        """shorthand"""
+        return self._get_branch(SERVICE_IFACE, "Device", device)
+
+    def characteristics(self, service=None):
+        """shorthand"""
+        return self._get_branch(CHARACTERISTIC_IFACE, "Service", service)
+
+    def descriptors(self, characteristic=None):
+        """shorthand"""
+        return self._get_branch(
+            DESCRIPTOR_IFACE, "Characteristic", characteristic
+        )
+
+    def _interfaces_added(self, path, interfaces):
+
+        _LOGGER.debug("Interfaces added on %s", path)
+
+        if path in self.objects:
+            _LOGGER.error("Interface added on known object: %s", path)
+            if any(
+                interface in self.objects[path] for interface in interfaces
+            ):
+                _LOGGER.error(
+                    "Interface already known: %s %s", path, interfaces
+                )
+                return
+
+            self.objects[path].update(interfaces)
+        else:
+            self.objects[path] = interfaces
 
         device = interfaces.get(DEVICE_IFACE)
         if device:
@@ -203,6 +235,14 @@ class DeviceManager:
             self.objects[path][interface].update(changed)
             _LOGGER_SCAN.debug("%s properties changed: %s", path, changed)
 
+        _LOGGER_SCAN.debug(
+            "Properties changed on %s/%s: %s -- %s",
+            path,
+            interface,
+            changed,
+            invalidated,
+        )
+
         device = self.objects[path].get(DEVICE_IFACE)
         if device:
             alias = device.get("Alias", path)
@@ -217,14 +257,14 @@ class DeviceManager:
             _LOGGER.error("Removed unknown device: %s", path)
             return
 
+        _LOGGER.debug("Interfaces removed on %s", path)
+
         for interface in interfaces:
             del self.objects[path][interface]
 
         if not len(self.objects[path]):
+            _LOGGER.debug("No interfaces left, removing object at %s", path)
             del self.objects[path]
-
-    def services(self, device):
-        pass
 
     def scan(self, transport="le", device=None):
 
@@ -236,58 +276,47 @@ class DeviceManager:
         # But the callback in DeviceObserver needs to be
         # bridged with loop.call_soon_threadsafe then
 
-        objects = list(get_remote_objects())
-
-        _LOGGER.info("%s %s %s", __name__, __version__, __file__)
-        _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
-        _LOGGER.info("Bluez version: %d.%d", *bluez_version())
-
-        _LOGGER.debug("Total known objects: %d", _len(objects))
-        _LOGGER.debug("Known adapters: %d", _len(get_adapters(objects)))
-        _LOGGER.debug("Total known devices: %d", _len(get_devices(objects)))
-
-        adapter = get_adapter(device, objects)
-
-        if not adapter:
-            exit("No adapter found")
-
-        path, _ = adapter
-        adapter = proxy_for(path)
-
-        _LOGGER.info(
-            "Adapter %s (%s) on %s is powered %s",
-            adapter.Name,
-            adapter.Address,
-            path,
-            ("off", "on")[adapter.Powered],
-        )
-
         def start_discovery():
-            _LOGGER.debug("adding known interfaces ...")
 
-            for obj in objects:
-                self._interfaces_added(*obj)
+            _LOGGER.debug("adding known interfaces ...")
+            # for path, interfaces in objects:
+            #    self.objects[path] = interfaces
+            _LOGGER.debug("... known interfaces added")
+
+            _LOGGER.debug("Discovery signals for known devices...")
+            for path, interfaces in self.objects.items():
+                device = interfaces.get(DEVICE_IFACE)
+                if device:
+                    self.observer.discovered(self, path, device)
 
             def _relevant_interfaces(interfaces):
                 irrelevant_interfaces = {
                     "org.freedesktop.DBus.Properties",
-                    "org.freedesktop.DBus.Introspectable"}
+                    "org.freedesktop.DBus.Introspectable",
+                }
                 return set(interfaces) - irrelevant_interfaces
 
             for path, interfaces in self.objects.items():
                 _LOGGER.debug(
-                    "%-45s: %s", path, ", ".join(_relevant_interfaces(interfaces.keys())))
+                    "%-45s: %s",
+                    path,
+                    ", ".join(_relevant_interfaces(interfaces.keys())),
+                )
 
-            _LOGGER.debug("... known interfaces added")
             _LOGGER.info("discovering...")
             if transport:
                 discovery_filter = dict(
-                    Transport=pydbus.Variant("s", transport))
+                    Transport=pydbus.Variant("s", transport)
+                )
             else:
                 discovery_filter = {}
 
-            adapter.SetDiscoveryFilter(discovery_filter)
-            adapter.StartDiscovery()
+            try:
+                self.adapter.SetDiscoveryFilter(discovery_filter)
+                self.adapter.StartDiscovery()
+                _LOGGER.info("... discovery started")
+            except GLib.Error as e:
+                _LOGGER.error("Could not start discovery")
 
             return False
 
@@ -308,16 +337,19 @@ class DeviceManager:
 
         GLib.idle_add(start_discovery)
 
-        with object_manager().InterfacesAdded.connect(
-                self._interfaces_added
-        ), object_manager().InterfacesRemoved.connect(
+        object_manager = get_object_manager()
+        bus = pydbus.SystemBus()
+
+        with object_manager.InterfacesAdded.connect(
+            self._interfaces_added
+        ), object_manager.InterfacesRemoved.connect(
             self._interfaces_removed
-        ), pydbus.SystemBus().subscribe(
+        ), bus.subscribe(
             iface=PROPERTIES_IFACE,
             signal="PropertiesChanged",
             arg0=DEVICE_IFACE,
             signal_fired=self._properties_changed,
-        ), pydbus.SystemBus().subscribe(
+        ), bus.subscribe(
             iface=PROPERTIES_IFACE,
             signal="PropertiesChanged",
             arg0=DESCRIPTOR_IFACE,
@@ -329,20 +361,18 @@ class DeviceManager:
 if __name__ == "__main__":
 
     LOG_LEVEL = logging.DEBUG
-    LOG_FMT   = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
-    DATE_FMT  = "%y-%m-%d %H:%M.%S"
+    LOG_FMT = (
+        "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
+    )
+    DATE_FMT = "%y-%m-%d %H:%M.%S"
 
     try:
         import coloredlogs
 
-        coloredlogs.install(
-            level=LOG_LEVEL, datefmt=DATE_FMT, fmt=LOG_FMT
-        )
+        coloredlogs.install(level=LOG_LEVEL, datefmt=DATE_FMT, fmt=LOG_FMT)
     except ImportError:
         _LOGGER.debug("no colored logs. pip install coloredlogs?")
-        logging.basicConfig(
-            level=LOG_LEVEL, datefmt=DATE_FMT, format=LOG_FMT
-        )
+        logging.basicConfig(level=LOG_LEVEL, datefmt=DATE_FMT, format=LOG_FMT)
 
     logging.captureWarnings(True)
 
