@@ -14,7 +14,7 @@ black:
 .PHONY: lint
 lint: requirements.txt setup.py
 	tox -e lint
-	tox -e pytype
+#	tox -e pytype
 
 .PHONY: test
 test: requirements.txt setup.py
