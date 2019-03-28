@@ -476,6 +476,7 @@ if __name__ == "__main__":
             print(alias, mac, "on", path, q, "%")
 
             from pprint import pprint
+
             pprint(device)
 
     try:
