@@ -95,7 +95,6 @@ def register_spp_profile(read_callback):
     UUID_SPP = "00001101-0000-1000-8000-00805f9b34fb"
 
     class Profile:
-
         def __init__(self):
             _LOGGER.debug("Init profile")
             self.fd = None
@@ -113,15 +112,19 @@ def register_spp_profile(read_callback):
 
         def NewConnection(self, path, fd, properties):
 
-            _LOGGER.error("New connection on %s with fd=%d. Properties: %s",
-                          path, fd, properties)
+            _LOGGER.error(
+                "New connection on %s with fd=%d. Properties: %s",
+                path,
+                fd,
+                properties,
+            )
 
             self.close()
             self.fd = os.dup(fd)
 
             def fd_read_callback(fd, conditions):
                 _LOGGER.debug("IO callback on fd %d", fd)
-                assert(self.fd == fd)
+                assert self.fd == fd
                 read_callback(path, fd)
                 return True
 
@@ -130,7 +133,8 @@ def register_spp_profile(read_callback):
                     self.fd,
                     GLib.PRIORITY_DEFAULT,
                     GLib.IO_IN | GLib.IO_PRI,
-                    fd_read_callback)
+                    fd_read_callback,
+                )
             except:
                 _LOGGER.exception("foo")
 
@@ -152,7 +156,7 @@ def register_spp_profile(read_callback):
         Channel=pydbus.Variant("q", 1),
         RequireAuthorization=pydbus.Variant("b", False),
         RequireAuthentication=pydbus.Variant("b", False),
-        Name=pydbus.Variant("s", "Foo")
+        Name=pydbus.Variant("s", "Foo"),
     )
 
     _LOGGER.info("Creating Serial Port Profile")
@@ -162,11 +166,10 @@ def register_spp_profile(read_callback):
     bus.register_object(
         profile_path,
         Profile(),
-        pathlib.Path(__file__).with_name("btspp.xml").read_text())
+        pathlib.Path(__file__).with_name("btspp.xml").read_text(),
+    )
 
-    get_profile_manager().RegisterProfile(
-        profile_path,
-        UUID_SPP, opts)
+    get_profile_manager().RegisterProfile(profile_path, UUID_SPP, opts)
 
     _LOGGER.info("Registered profile")
 
@@ -249,10 +252,11 @@ class DeviceManager:
         return next(
             (
                 interfaces
-                for path, interfaces
-                in self.devices
+                for path, interfaces in self.devices
                 if path == device_path
-            ), []).get(DEVICE_IFACE)
+            ),
+            [],
+        ).get(DEVICE_IFACE)
 
     def get_adapter(self, device=None):
         """return first adapter"""
