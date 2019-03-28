@@ -29,10 +29,6 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER_SCAN = logging.getLogger(__name__ + ".scan")
 
 
-LOGFMT = "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
-DATEFMT = "%y-%m-%d %H:%M.%S"
-
-
 class DeviceObserver:
 
     # Subclass this to catch any events
