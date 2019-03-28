@@ -341,11 +341,6 @@ class DeviceManager:
 
         device = self.objects[path].get(DEVICE_IFACE)
         if device:
-            alias = device.get("Alias", path)
-            mac = device.get("Address")
-            q = quality_from_dbm(device.get("RSSI"))
-            if q is not None:
-                _LOGGER_SCAN.debug("Seeing %s (%3s%%): %s", mac, q, alias)
             self.observer.seen(self, path, device)
 
     def _interfaces_removed(self, path, interfaces):
@@ -474,8 +469,13 @@ if __name__ == "__main__":
 
     class Observer(DeviceObserver):
         def seen(self, manager, path, device):
+            alias = device.get("Alias", path)
+            mac = device.get("Address")
+            q = quality_from_dbm(device.get("RSSI"))
+
+            print(alias, mac, "on", path, q, "%")
+
             from pprint import pprint
-            print("Discovered", path)
             pprint(device)
 
     try:
