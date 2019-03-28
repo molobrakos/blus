@@ -3,6 +3,7 @@ Simple Bluez D-Bus python client interface
 Use like:
 
 ```python
+import blus
 class Observer(blus.DeviceObserver):
 
     def seen(self, manager, path, device):
