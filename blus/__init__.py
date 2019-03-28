@@ -1,8 +1,6 @@
 # -*- mode: python; coding: utf-8 -*-
 
 import logging
-import pathlib
-import os
 
 import pydbus
 from gi.repository import GLib
