@@ -10,7 +10,7 @@ from gi.repository import GLib
 from .util import get_remote_objects, proxy_for, get_object_manager, bluez_version, _len
 from .const import (
     ADAPTER_IFACE,
-    DEVICE_IFACE, PROPERTIES_IFACE, DESCRIPTOR_IFACE)
+    DEVICE_IFACE, PROPERTIES_IFACE, SERVICE_IFACE, CHARACTERISTIC_IFACE, DESCRIPTOR_IFACE)
 
 
 __version__ = "0.0.14"
