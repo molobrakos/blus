@@ -15,7 +15,7 @@ class Observer(blus.DeviceObserver):
         # etc ...
 
 
-blus.DeviceManager(Observer()).scan(transport="le")
+blus.DeviceManager(Observer()).scan()
 ```
 
   Other example:
