@@ -241,15 +241,14 @@ class DeviceManager:
                     ", ".join(_relevant_interfaces(interfaces.keys())),
                 )
 
-            _LOGGER.info("discovering...")
+            discovery_filter = {}
             if transport:
                 discovery_filter = dict(
                     Transport=pydbus.Variant("s", transport)
                 )
-            else:
-                discovery_filter = {}
 
             try:
+                _LOGGER.info("discovering...")
                 self.adapter.SetDiscoveryFilter(discovery_filter)
                 self.adapter.StartDiscovery()
                 _LOGGER.info("... discovery started")
