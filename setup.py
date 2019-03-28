@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from setuptools import setup, find_packages
+import os
 
 setup(
     name="blus",
@@ -13,6 +14,6 @@ setup(
     packages=find_packages(),
     py_modules=["blus"],
     keywords="bluez",
-    long_description=(open("README.md").read() if exists("README.md") else ""),
+    long_description=(open("README.md").read() if os.path.exists("README.md") else ""),
     install_requires=list(open("requirements.txt").read().strip().split("\n"))
 )
