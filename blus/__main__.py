@@ -1,6 +1,12 @@
 import logging
+
+
 from . import DeviceObserver, DeviceManager
 from .util import quality_from_dbm
+
+
+_LOGGER = logging.getLogger(__name__)
+
 
 if __name__ == "__main__":
 
