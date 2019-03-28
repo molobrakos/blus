@@ -2,12 +2,7 @@
 
 __version__ = "0.0.16"
 
-from .util import (
-    get_remote_objects,
-    get_object_manager,
-    proxy_for,
-)
-
+from .util import get_remote_objects, get_object_manager, proxy_for
 from .const import (
     ADAPTER_IFACE,
     DEVICE_IFACE,
@@ -16,5 +11,19 @@ from .const import (
     CHARACTERISTIC_IFACE,
     DESCRIPTOR_IFACE,
 )
-
 from .device import DeviceManager, DeviceObserver
+
+
+__all__ = [
+    "DeviceManager",
+    "DeviceObserver",
+    "get_remote_objects",
+    "get_object_manager",
+    "proxy_for",
+    "ADAPTER_IFACE",
+    "DEVICE_IFACE",
+    "PROPERTIES_IFACE",
+    "SERVICE_IFACE",
+    "CHARACTERISTIC_IFACE",
+    "DESCRIPTOR_IFACE",
+]

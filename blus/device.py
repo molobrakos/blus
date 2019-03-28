@@ -6,15 +6,13 @@ import pydbus
 from gi.repository import GLib
 
 from . import __version__
-
 from .util import (
     get_remote_objects,
     get_object_manager,
     bluez_version,
     proxy_for,
-    _len
+    _len,
 )
-
 from .const import (
     ADAPTER_IFACE,
     DEVICE_IFACE,
