@@ -10,8 +10,8 @@ class Observer(blus.DeviceObserver):
         print("Seeing %s at %s" % (alias, path))
 
         # device = blus.proxy_for(device)
-        # device.trusted = True
         # device.Pair()
+        # device.Connect()
         # etc ...
 
 
