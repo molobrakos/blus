@@ -1,2 +1,2 @@
 include requirements.txt
-include btspp.xml
+include blus/spp.xml
