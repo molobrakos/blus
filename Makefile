@@ -9,7 +9,7 @@ white: black
 
 .PHONY: black
 black:
-	white blus.py test_blus.py
+	white blus setup.py test_blus.py
 
 .PHONY: lint
 lint: requirements.txt setup.py
