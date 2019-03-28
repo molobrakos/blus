@@ -1,3 +1,16 @@
+import logging
+import pathlib
+import os
+
+import pydbus
+from gi.repository import GLib
+
+
+from .util import get_profile_manager
+
+_LOGGER = logging.getLogger(__name__)
+
+
 def register_spp_profile(read_callback):
 
     try:
