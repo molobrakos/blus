@@ -5,10 +5,6 @@ Use like:
 ```python
 class Observer(blus.DeviceObserver):
 
-  def discovered(self, manager, path, device):
-    alias = device.get("Alias")
-    print("Discovered %s at %s" % (alias, path))
-
   def seen(self, manager, path, device):
     alias = device.get("Alias")
     print("Seeing %s at %s" % (alias, path))
