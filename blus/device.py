@@ -205,7 +205,7 @@ class DeviceManager:
         for interface in interfaces:
             del self.objects[path][interface]
 
-        if not len(self.objects[path]):
+        if not self.objects[path]:
             _LOGGER.debug("No interfaces left, removing object at %s", path)
             del self.objects[path]
 
