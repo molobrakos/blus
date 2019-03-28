@@ -94,7 +94,7 @@ class DeviceObserver:
 
     def discovered(self, manager, path, device):
         # Override this to catch events
-        pass
+        self.seen(manager, path, device)
 
     def seen(self, manager, path, device):
         # Override this to catch events
