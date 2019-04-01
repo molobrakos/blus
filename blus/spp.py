@@ -11,7 +11,8 @@ from .util import get_profile_manager
 _LOGGER = logging.getLogger(__name__)
 
 
-def register_spp_profile(read_callback):
+def register_spp_profile(read_callback,
+                         **kwargs):
 
     try:
         from pydbus import unixfd  # noqa: F401
@@ -21,6 +22,7 @@ def register_spp_profile(read_callback):
     UUID_SPP = "00001101-0000-1000-8000-00805f9b34fb"
 
     class Profile:
+
         def __init__(self):
             _LOGGER.debug("Init profile")
             self.fd = None
@@ -75,14 +77,14 @@ def register_spp_profile(read_callback):
             except ConnectionResetError:
                 self.fd = None
 
-    profile_path = "/foo/bar/profile"
+    profile_path = kwargs.get("profile", "/foo/bar/profile")
     opts = dict(
-        AutoConnect=pydbus.Variant("b", True),
-        Role=pydbus.Variant("s", "server"),
-        Channel=pydbus.Variant("q", 1),
-        RequireAuthorization=pydbus.Variant("b", False),
-        RequireAuthentication=pydbus.Variant("b", False),
-        Name=pydbus.Variant("s", "Foo"),
+        AutoConnect=pydbus.Variant("b", kwargs.get("auto_connect", True)),
+        Role=pydbus.Variant("s", kwargs.get("role", "server")),
+        Channel=pydbus.Variant("q", kwargs.get("channel", 1)),
+        RequireAuthorization=pydbus.Variant("b", kwargs.get("authorization", False)),
+        RequireAuthentication=pydbus.Variant("b", kwargs.get("authentication", False)),
+        Name=pydbus.Variant("s", kwargs.get("name", "Foo")),
     )
 
     _LOGGER.info("Creating Serial Port Profile")
