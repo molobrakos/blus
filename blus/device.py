@@ -1,6 +1,7 @@
 # -*- mode: python; coding: utf-8 -*-
 
 import logging
+import time
 
 import pydbus
 from gi.repository import GLib
@@ -39,9 +40,11 @@ class DeviceObserver:
 
 
 class DeviceManager:
+
     def __init__(self, observer, device=None):
 
         self.objects = get_remote_objects()
+        self.last_seen = {}
         self.observer = observer
 
         _LOGGER.info("%s %s %s", __name__, __version__, __file__)
@@ -70,11 +73,21 @@ class DeviceManager:
 
         def periodic_check():
             try:
-                _LOGGER.debug(
+                _LOGGER.info(
                     "Periodic check, known objects: %d", len(self.objects)
                 )
+
+                for path, last_seen in self.last_seen.items():
+                    if time.time() - last_seen > 60:
+                        _LOGGER.error("Haven't seen %s in 60 seconds", path)
+                        if (self.objects[path][DEVICE_IFACE]["AddressType"] == "public" or
+                            self.objects[path][DEVICE_IFACE]["Paired"]):
+                            _LOGGER.info("Keeping device with public address")
+                        else:
+                            _LOGGER.info("Removing device with random address")
+                            self.adapter.RemoveDevice(path)
             finally:
-                GLib.timeout_add_seconds(10, periodic_check)
+                GLib.timeout_add_seconds(30, periodic_check)
 
         GLib.idle_add(periodic_check)
 
@@ -164,12 +177,14 @@ class DeviceManager:
 
         device = interfaces.get(DEVICE_IFACE)
         if device:
+            self.last_seen[path] = time.time()
             self.observer.discovered(self, path, device)
 
         _LOGGER.debug("Added %s. Total known %d", path, len(self.objects))
 
     def _properties_changed(self, _sender, path, _iface, _signal, changed):
         interface, changed, invalidated = changed
+
         if path not in self.objects:
             _LOGGER.error("unknown object %s changed", path)
             return
@@ -181,7 +196,6 @@ class DeviceManager:
 
         if changed:
             self.objects[path][interface].update(changed)
-            _LOGGER_SCAN.debug("%s properties changed: %s", path, changed)
 
         _LOGGER_SCAN.debug(
             "Properties changed on %s/%s: %s -- %s",
@@ -193,6 +207,7 @@ class DeviceManager:
 
         device = self.objects[path].get(DEVICE_IFACE)
         if device:
+            self.last_seen[path] = time.time()
             self.observer.seen(self, path, device)
 
     def _interfaces_removed(self, path, interfaces):
@@ -207,6 +222,8 @@ class DeviceManager:
 
         if not self.objects[path]:
             del self.objects[path]
+            del self.last_seen[path]
+            _LOGGER.debug("%s removed", path)
 
     def scan(self, transport="le", device=None):
         """
