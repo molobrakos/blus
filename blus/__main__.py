@@ -25,6 +25,7 @@ if __name__ == "__main__":
         logging.basicConfig(level=LOG_LEVEL, datefmt=DATE_FMT, format=LOG_FMT)
 
     logging.captureWarnings(True)
+    logging.getLogger("blus.device.scan").setLevel(logging.WARNING)
 
     class Observer(DeviceObserver):
         def seen(self, manager, path, device):
@@ -34,9 +35,8 @@ if __name__ == "__main__":
 
             print(alias, mac, "on", path, q, "%")
 
-            from pprint import pprint
-
-            pprint(device)
+            # from pprint import pprint
+            # pprint(device)
 
     try:
         DeviceManager(Observer()).scan()
