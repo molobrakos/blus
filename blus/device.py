@@ -86,7 +86,7 @@ class DeviceManager:
                 )
                 self.purge_unseen_devices()
             finally:
-                GLib.timeout_add_seconds(PERIODIC_CHECK_INTERVAL, periodic_check)
+                GLib.timeout_add_seconds(PERIODIC_CHECK_INTERVAL.total_seconds(), periodic_check)
 
         GLib.idle_add(periodic_check)
 
