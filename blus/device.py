@@ -40,7 +40,6 @@ class DeviceObserver:
 
 
 class DeviceManager:
-
     def __init__(self, observer, device=None):
 
         self.objects = get_remote_objects()
@@ -80,8 +79,11 @@ class DeviceManager:
                 for path, last_seen in self.last_seen.items():
                     if time.time() - last_seen > 60:
                         _LOGGER.error("Haven't seen %s in 60 seconds", path)
-                        if (self.objects[path][DEVICE_IFACE]["AddressType"] == "public" or
-                            self.objects[path][DEVICE_IFACE]["Paired"]):
+                        if (
+                            self.objects[path][DEVICE_IFACE]["AddressType"]
+                            == "public"
+                            or self.objects[path][DEVICE_IFACE]["Paired"]
+                        ):
                             _LOGGER.info("Keeping device with public address")
                         else:
                             _LOGGER.info("Removing device with random address")
