@@ -2,6 +2,7 @@
 
 import logging
 import time
+import datetime
 
 import pydbus
 from gi.repository import GLib
@@ -28,6 +29,10 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER_SCAN = logging.getLogger(__name__ + ".scan")
 
 
+DEFAULT_PURGE_TIMEOUT = datetime.timedelta(seconds=60)
+PERIODIC_CHECK_INTERVAL = datetime.timedelta(seconds=30)
+
+
 class DeviceObserver:
 
     # Subclass this to catch any events
@@ -41,11 +46,14 @@ class DeviceObserver:
 
 class DeviceManager:
 
-    def __init__(self, observer, device=None):
+    def __init__(self, observer, device=None, purge_timeout=DEFAULT_PURGE_TIMEOUT):
+
+        assert(purge_timeout >= PERIODIC_CHECK_INTERVAL)
 
         self.objects = get_remote_objects()
         self.last_seen = {}
         self.observer = observer
+        self.purge_timeout = purge_timeout.total_seconds()
 
         _LOGGER.info("%s %s %s", __name__, __version__, __file__)
         _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
@@ -76,20 +84,24 @@ class DeviceManager:
                 _LOGGER.info(
                     "Periodic check, known objects: %d", len(self.objects)
                 )
-
-                for path, last_seen in self.last_seen.items():
-                    if time.time() - last_seen > 60:
-                        _LOGGER.error("Haven't seen %s in 60 seconds", path)
-                        if (self.objects[path][DEVICE_IFACE]["AddressType"] == "public" or
-                            self.objects[path][DEVICE_IFACE]["Paired"]):
-                            _LOGGER.info("Keeping device with public address")
-                        else:
-                            _LOGGER.info("Removing device with random address")
-                            self.adapter.RemoveDevice(path)
+                self.purge_unseen_devices()
             finally:
-                GLib.timeout_add_seconds(30, periodic_check)
+                GLib.timeout_add_seconds(PERIODIC_CHECK_INTERVAL, periodic_check)
 
         GLib.idle_add(periodic_check)
+
+    def purge_unseen_devices(self):
+        for path, last_seen in self.last_seen.items():
+            if time.time() - last_seen < self.purge_timeout:
+                continue
+            _LOGGER.error("Haven't seen %s in %d seconds", path, self.purge_interval)
+            if (self.objects[path][DEVICE_IFACE]["AddressType"] == "public" or
+                self.objects[path][DEVICE_IFACE]["Paired"]):
+                _LOGGER.info("Keeping device with public address")
+            else:
+                _LOGGER.info("Removing device with random address")
+                self.adapter.RemoveDevice(path)
+
 
     def get_objects(self, *interface):
         """
@@ -220,6 +232,7 @@ class DeviceManager:
         for interface in interfaces:
             del self.objects[path][interface]
 
+        # if no interface left
         if not self.objects[path]:
             del self.objects[path]
             del self.last_seen[path]
@@ -285,6 +298,7 @@ class DeviceManager:
                 _LOGGER.exception("Got exception")
                 raise
             finally:
+                _LOGGER.info("Devices currently known: %d", len(self.objects))
                 main_loop.quit()
                 pass
 
