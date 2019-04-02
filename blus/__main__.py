@@ -1,14 +1,33 @@
+"""
+Simple bluez command line interface with MQTT gateway
+
+Usage:
+  blus (-h | --help)
+  blus --version
+  blus [-v|-vv] [options] scan
+  blus [-v|-vv] [options] mqtt
+
+Options:
+  -h --help             Show this message
+  -v,-vv                Increase verbosity
+  -d                    More debugging
+  --version             Show version
+"""
+
 import logging
+import docopt
 
-
-from . import DeviceObserver, DeviceManager
+from . import DeviceObserver, DeviceManager, __version__
 from .util import quality_from_dbm
 
 
 _LOGGER = logging.getLogger(__name__)
 
 
-if __name__ == "__main__":
+def main():
+    args = docopt.docopt(__doc__, version=__version__)
+
+    debug = args["-d"]
 
     LOG_LEVEL = logging.DEBUG
     LOG_FMT = (
@@ -18,7 +37,6 @@ if __name__ == "__main__":
 
     try:
         import coloredlogs
-
         coloredlogs.install(level=LOG_LEVEL, datefmt=DATE_FMT, fmt=LOG_FMT)
     except ImportError:
         _LOGGER.debug("no colored logs. pip install coloredlogs?")
@@ -42,3 +60,7 @@ if __name__ == "__main__":
         DeviceManager(Observer()).scan()
     except KeyboardInterrupt:
         pass
+
+
+if __name__ == "__main__":
+    main()
