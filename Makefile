@@ -31,6 +31,8 @@ clean:
 	rm -rf __pycache__
 	rm -f pip-selfcheck.json
 	rm -rf pytype_output
+	rm -rf .pytest_cache
+	rm -rf dist
 
 .PHONY: pypi
 pypi:
