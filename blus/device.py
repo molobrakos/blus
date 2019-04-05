@@ -29,8 +29,9 @@ _LOGGER = logging.getLogger(__name__)
 _LOGGER_SCAN = logging.getLogger(__name__ + ".scan")
 
 
-DEFAULT_PURGE_TIMEOUT = datetime.timedelta(seconds=60)
+DEFAULT_PURGE_TIMEOUT = datetime.timedelta(minutes=5)
 PERIODIC_CHECK_INTERVAL = datetime.timedelta(seconds=30)
+DEFAULT_THROTTLE = datetime.timedelta(seconds=10)
 
 
 class DeviceObserver:
@@ -43,10 +44,21 @@ class DeviceObserver:
     def seen(self, manager, path, device):
         pass
 
+    def unseen(self, manager, path):
+        pass
+
+
+def is_device(interfaces):
+    return DEVICE_IFACE in interfaces
+
 
 class DeviceManager:
 
-    def __init__(self, observer, device=None, purge_timeout=DEFAULT_PURGE_TIMEOUT):
+    def __init__(self,
+                 observer,
+                 device=None,
+                 purge_timeout=DEFAULT_PURGE_TIMEOUT,
+                 throttle=DEFAULT_THROTTLE):
 
         assert(purge_timeout >= PERIODIC_CHECK_INTERVAL)
 
@@ -54,6 +66,7 @@ class DeviceManager:
         self.last_seen = {}
         self.observer = observer
         self.purge_timeout = purge_timeout.total_seconds()
+        self.throttle = throttle.total_seconds()
 
         _LOGGER.info("%s %s %s", __name__, __version__, __file__)
         _LOGGER.info("%s: %s", pydbus.__name__, pydbus.__file__)
@@ -90,11 +103,27 @@ class DeviceManager:
 
         GLib.idle_add(periodic_check)
 
+    def update_last_seen(self, path):
+        self.last_seen[path] = time.time()
+
+    def see_device(self, path):
+        if time.time() - self.last_seen[path] < self.throttle:
+            # FIXME: might hide state changes of interest
+            _LOGGER.debug("Skipping recently seen %s", path)
+            return
+        self.update_last_seen(path)
+        self.observer.seen(self, path, self.get_device(path))
+
+    def discover_device(self, path):
+        self.update_last_seen(path)
+        self.observer.discovered(self, path, self.get_device(path))
+
     def purge_unseen_devices(self):
+        _LOGGER.debug("last seen length %d", len(self.last_seen))
         for path, last_seen in self.last_seen.items():
             if time.time() - last_seen < self.purge_timeout:
                 continue
-            _LOGGER.error("Haven't seen %s in %d seconds", path, self.purge_interval)
+            _LOGGER.error("Haven't seen %s in %d seconds", path, self.purge_timeout)
             if (self.objects[path][DEVICE_IFACE]["AddressType"] == "public" or
                 self.objects[path][DEVICE_IFACE]["Paired"]):
                 _LOGGER.info("Keeping device with public address")
@@ -126,14 +155,7 @@ class DeviceManager:
         return self.get_objects(DEVICE_IFACE)
 
     def get_device(self, device_path):
-        return next(
-            (
-                interfaces
-                for path, interfaces in self.devices
-                if path == device_path
-            ),
-            [],
-        ).get(DEVICE_IFACE)
+        return self.objects.get(device_path).get(DEVICE_IFACE)
 
     def get_adapter(self, device=None):
         """return first adapter"""
@@ -187,10 +209,8 @@ class DeviceManager:
         else:
             self.objects[path] = interfaces
 
-        device = interfaces.get(DEVICE_IFACE)
-        if device:
-            self.last_seen[path] = time.time()
-            self.observer.discovered(self, path, device)
+        if self.get_device(path):
+            self.discover_device(path)
 
         _LOGGER.debug("Added %s. Total known %d", path, len(self.objects))
 
@@ -217,10 +237,8 @@ class DeviceManager:
             invalidated,
         )
 
-        device = self.objects[path].get(DEVICE_IFACE)
-        if device:
-            self.last_seen[path] = time.time()
-            self.observer.seen(self, path, device)
+        if self.get_device(path):
+            self.see_device(path)
 
     def _interfaces_removed(self, path, interfaces):
         if path not in self.objects:
@@ -228,6 +246,9 @@ class DeviceManager:
             return
 
         _LOGGER.debug("Interfaces removed on %s", path)
+
+        if DEVICE_IFACE in interfaces:
+            self.observer.unseen(self, path)
 
         for interface in interfaces:
             del self.objects[path][interface]
@@ -252,9 +273,8 @@ class DeviceManager:
 
             _LOGGER.debug("Discovery signals for known devices...")
             for path, interfaces in self.objects.items():
-                device = interfaces.get(DEVICE_IFACE)
-                if device:
-                    self.observer.discovered(self, path, device)
+                if self.get_device(path):
+                    self.discover_device(path)
 
             def _relevant_interfaces(interfaces):
                 irrelevant_interfaces = {
@@ -300,7 +320,7 @@ class DeviceManager:
             finally:
                 _LOGGER.info("Devices currently known: %d", len(self.objects))
                 main_loop.quit()
-                pass
+                _LOGGER.info("Scanner kthxbye")
 
         GLib.idle_add(start_discovery)
 
