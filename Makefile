@@ -48,3 +48,7 @@ release:
 	git push --tags
 	git push
 	make pypi
+
+prereqs:
+	sudo apt-get install python3-hbmqtt
+
