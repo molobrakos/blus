@@ -4,6 +4,7 @@ Simple bluez command line interface with MQTT gateway
 Usage:
   blus (-h | --help)
   blus --version
+  blus [-v|-vv] [options]
   blus [-v|-vv] [options] scan
   blus [-v|-vv] [options] mqtt
 
@@ -19,9 +20,37 @@ import docopt
 
 from . import DeviceObserver, DeviceManager, __version__
 from .util import quality_from_dbm
+from . import mqtt
 
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def mqtt_gw(args):
+
+    import asyncio
+    loop = asyncio.get_event_loop()
+    loop.set_debug(args["-d"])
+    try:
+        loop.run_until_complete(mqtt.run())
+    except KeyboardInterrupt:
+        _LOGGER.debug("KeyboardInterrupt, exiting")
+
+
+def scan():
+
+    class Observer(DeviceObserver):
+
+        def seen(self, manager, path, device):
+            alias = device.get("Alias", path)
+            mac = device.get("Address")
+            q = quality_from_dbm(device.get("RSSI"))
+            print(alias, mac, "on", path, q, "%")
+
+    try:
+        DeviceManager(Observer()).scan()
+    except KeyboardInterrupt:
+        pass
 
 
 def main():
@@ -45,22 +74,10 @@ def main():
     logging.captureWarnings(True)
     logging.getLogger("blus.device.scan").setLevel(logging.WARNING)
 
-    class Observer(DeviceObserver):
-        def seen(self, manager, path, device):
-            alias = device.get("Alias", path)
-            mac = device.get("Address")
-            q = quality_from_dbm(device.get("RSSI"))
-
-            print(alias, mac, "on", path, q, "%")
-
-            # from pprint import pprint
-            # pprint(device)
-
-    try:
-        DeviceManager(Observer()).scan()
-    except KeyboardInterrupt:
-        pass
-
+    if args["mqtt"]:
+        mqtt_gw(args)
+    else:
+        scan()
 
 if __name__ == "__main__":
     main()
