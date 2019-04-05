@@ -2,3 +2,4 @@ setuptools
 docopt
 pydbus
 PyGObject
+hbmqtt
