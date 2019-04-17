@@ -53,14 +53,15 @@ def is_device(interfaces):
 
 
 class DeviceManager:
+    def __init__(
+        self,
+        observer,
+        device=None,
+        purge_timeout=DEFAULT_PURGE_TIMEOUT,
+        throttle=DEFAULT_THROTTLE,
+    ):
 
-    def __init__(self,
-                 observer,
-                 device=None,
-                 purge_timeout=DEFAULT_PURGE_TIMEOUT,
-                 throttle=DEFAULT_THROTTLE):
-
-        assert(purge_timeout >= PERIODIC_CHECK_INTERVAL)
+        assert purge_timeout >= PERIODIC_CHECK_INTERVAL
 
         self.objects = get_remote_objects()
         self.last_seen = {}
@@ -99,7 +100,9 @@ class DeviceManager:
                 )
                 self.purge_unseen_devices()
             finally:
-                GLib.timeout_add_seconds(PERIODIC_CHECK_INTERVAL.total_seconds(), periodic_check)
+                GLib.timeout_add_seconds(
+                    PERIODIC_CHECK_INTERVAL.total_seconds(), periodic_check
+                )
 
         GLib.idle_add(periodic_check)
 
@@ -123,14 +126,17 @@ class DeviceManager:
         for path, last_seen in self.last_seen.items():
             if time.time() - last_seen < self.purge_timeout:
                 continue
-            _LOGGER.error("Haven't seen %s in %d seconds", path, self.purge_timeout)
-            if (self.objects[path][DEVICE_IFACE]["AddressType"] == "public" or
-                self.objects[path][DEVICE_IFACE]["Paired"]):
+            _LOGGER.error(
+                "Haven't seen %s in %d seconds", path, self.purge_timeout
+            )
+            if (
+                self.objects[path][DEVICE_IFACE]["AddressType"] == "public"
+                or self.objects[path][DEVICE_IFACE]["Paired"]
+            ):
                 _LOGGER.info("Keeping device with public address")
             else:
                 _LOGGER.info("Removing device with random address")
                 self.adapter.RemoveDevice(path)
-
 
     def get_objects(self, *interface):
         """
@@ -272,7 +278,7 @@ class DeviceManager:
         def start_discovery():
 
             _LOGGER.debug("Discovery signals for known devices...")
-            for path, interfaces in self.objects.items():
+            for path, _interfaces in self.objects.items():
                 if self.get_device(path):
                     self.discover_device(path)
 
