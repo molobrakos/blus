@@ -12,6 +12,7 @@ setup(
     license="",
     author="Erik",
     author_email="error.errorsson@gmail.com",
+    include_package_data=True,
     packages=find_packages(),
     py_modules=["blus"],
     keywords="bluez",
