@@ -16,6 +16,7 @@ Options:
 """
 
 import logging
+
 import docopt
 
 from . import DeviceObserver, DeviceManager, __version__
@@ -29,6 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 def mqtt_gw(args):
 
     import asyncio
+
     loop = asyncio.get_event_loop()
     loop.set_debug(args["-d"])
     try:
@@ -38,9 +40,7 @@ def mqtt_gw(args):
 
 
 def scan():
-
     class Observer(DeviceObserver):
-
         def seen(self, manager, path, device):
             alias = device.get("Alias", path)
             mac = device.get("Address")
@@ -56,8 +56,6 @@ def scan():
 def main():
     args = docopt.docopt(__doc__, version=__version__)
 
-    debug = args["-d"]
-
     LOG_LEVEL = logging.DEBUG
     LOG_FMT = (
         "%(asctime)s %(levelname)5s (%(threadName)s) [%(name)s] %(message)s"
@@ -66,6 +64,7 @@ def main():
 
     try:
         import coloredlogs
+
         coloredlogs.install(level=LOG_LEVEL, datefmt=DATE_FMT, fmt=LOG_FMT)
     except ImportError:
         _LOGGER.debug("no colored logs. pip install coloredlogs?")
@@ -78,6 +77,7 @@ def main():
         mqtt_gw(args)
     else:
         scan()
+
 
 if __name__ == "__main__":
     main()
