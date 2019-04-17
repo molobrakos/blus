@@ -4,14 +4,15 @@ import logging
 import time
 import json
 import string
-import asyncio
-import certifi
 import datetime
 import platform
 import os
 import threading
+import asyncio
 
-from . import DeviceObserver, DeviceManager, __version__
+import certifi
+
+from . import DeviceObserver, DeviceManager
 from .util import quality_from_dbm
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,7 +27,9 @@ TOPIC_SUBSTITUTE = "_"
 def read_mqtt_config():
     """Read credentials from ~/.config/mosquitto_pub."""
     fname = os.path.join(
-        os.environ.get("XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config")),
+        os.environ.get(
+            "XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config")
+        ),
         "mosquitto_pub",
     )
     try:
@@ -45,9 +48,10 @@ def read_mqtt_config():
     except FileNotFoundError:
         exit("Could not find MQTT config: %s" % fname)
 
+
 def is_mainthread():
-    return (threading.current_thread() ==
-            threading.main_thread())
+    return threading.current_thread() == threading.main_thread()
+
 
 def topic_for_path(path):
     return "/".join(["blus", platform.node(), path.split("/")[-1]])
@@ -59,10 +63,15 @@ async def run(config=None):
 
     try:
         import websockets
-        from websockets.handshake import InvalidHandshake
+        from websockets.handshake import InvalidHandshake  # noqa
     except ImportError:
-        _LOGGER.warning("Applying workaround for https://github.com/beerfactory/hbmqtt/issues/138")
-        websockets.handshake.InvalidHandshake = websockets.exceptions.InvalidHandshake
+        _LOGGER.warning(
+            "Applying workaround for "
+            "https://github.com/beerfactory/hbmqtt/issues/138"
+        )
+        websockets.handshake.InvalidHandshake = (
+            websockets.exceptions.InvalidHandshake
+        )
 
     from hbmqtt.client import MQTTClient, ConnectException, ClientException
 
@@ -79,20 +88,20 @@ async def run(config=None):
     def publish(path, payload):
         topic = topic_for_path(path)
         _LOGGER.debug("Publishing on %s: %s", topic, payload)
+
         async def publish_task():
             try:
                 await mqtt.publish(
-                    topic,
-                    payload.encode("utf-8"),
-                    retain=False)
+                    topic, payload.encode("utf-8"), retain=False
+                )
             except Exception as e:
                 _LOGGER.error("Failed to publish: %s", e)
+
         loop.create_task(publish_task())
 
     class Observer(DeviceObserver):
-
         def async_seen(self, manager, path, device):
-            assert(is_mainthread())
+            assert is_mainthread()
             _LOGGER.debug("async seen %s", path)
             if "RSSI" in device:
                 device["_quality"] = quality_from_dbm(device["RSSI"])
@@ -104,18 +113,16 @@ async def run(config=None):
             publish(path, None)
 
         def seen(self, manager, path, device):
-            assert(not is_mainthread())
+            assert not is_mainthread()
             loop.call_soon_threadsafe(self.async_seen, manager, path, device)
 
         def unseen(self, manager, path):
-            assert(not is_mainthread())
+            assert not is_mainthread()
             loop.call_soon_threadsafe(self.async_unseen, manager, path)
 
-
     async def scanner_task():
-
         def scanner_thread():
-            assert(not is_mainthread())
+            assert not is_mainthread()
             try:
                 _LOGGER.debug("scanner started")
                 DeviceManager(Observer()).scan()
@@ -144,7 +151,7 @@ async def run(config=None):
         _LOGGER.error("Could not connect to MQTT server: %s", e)
         return
     except Exception as e:
-        _LOGGER.error("Could not read credentials")
+        _LOGGER.error("Could not read credentials: %s", e)
         return
 
     async def mqtt_task():
@@ -165,6 +172,4 @@ async def run(config=None):
                 _LOGGER.info("mqtt disconnected")
                 raise
 
-    await asyncio.gather(
-        scanner_task(),
-        mqtt_task())
+    await asyncio.gather(scanner_task(), mqtt_task())
