@@ -19,9 +19,5 @@ setup(
         open("README.md").read() if os.path.exists("README.md") else ""
     ),
     install_requires=list(open("requirements.txt").read().strip().split("\n")),
-    entry_points={
-        "console_scripts": [
-            blus = "blus.__main__:main",
-        ],
-    },
+    entry_points={"conusole_scripts": ["blus=blus.__main__:main"]},
 )
