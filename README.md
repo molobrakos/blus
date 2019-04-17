@@ -2,8 +2,15 @@ Simple Bluez D-Bus python client interface
 
 Use like:
 
+```
+python3 -m blus
+```
+
+or
+
 ```python
 import blus
+
 class Observer(blus.DeviceObserver):
 
     def seen(self, manager, path, device):
@@ -15,12 +22,14 @@ class Observer(blus.DeviceObserver):
         # device.Connect()
         # etc ...
 
-
 blus.DeviceManager(Observer()).scan()
 ```
 
+Output:
+
 ```
 > python3 scanner.py
+
 Seeing 4B-CF-80-09-16-72 at /org/bluez/hci0/dev_4B_CF_80_09_16_72
 Seeing 77-0C-65-0A-7C-0F at /org/bluez/hci0/dev_77_0C_65_0A_7C_0F
 Seeing 42-90-C6-B6-F0-8A at /org/bluez/hci0/dev_42_90_C6_B6_F0_8A

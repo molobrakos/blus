@@ -31,6 +31,8 @@ clean:
 	rm -rf __pycache__
 	rm -f pip-selfcheck.json
 	rm -rf pytype_output
+	rm -rf .pytest_cache
+	rm -rf dist
 
 .PHONY: pypi
 pypi:
@@ -46,3 +48,7 @@ release:
 	git push --tags
 	git push
 	make pypi
+
+prereqs:
+	sudo apt-get install python3-hbmqtt
+
