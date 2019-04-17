@@ -3,3 +3,4 @@ docopt
 pydbus
 PyGObject
 hbmqtt
+certifi
