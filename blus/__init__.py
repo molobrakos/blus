@@ -1,6 +1,6 @@
 # -*- mode: python; coding: utf-8 -*-
 
-__version__ = "0.0.18"
+__version__ = "0.0.19"
 
 from .util import (
     get_remote_objects,

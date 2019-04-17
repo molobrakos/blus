@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="blus",
-    version="0.0.18",
+    version="0.0.19",
     description="Simple Bluez D-Bus client interface",
     url="https://github.com/molobrakos/blus",
     license="",
